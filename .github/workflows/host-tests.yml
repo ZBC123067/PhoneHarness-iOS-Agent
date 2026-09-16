@@ -1,0 +1,32 @@
+name: host-tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  offline-unit-suite:
+    name: Offline host unit suite
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Run offline host unit suite (no device, no credentials)
+        run: python3 run_all_tests.py
+      - name: Assert public suite is fully green
+        run: |
+          python3 run_all_tests.py | tee /tmp/regression.log
+          grep -q "REGRESSION_RESULT PASS" /tmp/regression.log

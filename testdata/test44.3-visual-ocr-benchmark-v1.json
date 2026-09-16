@@ -1,0 +1,16 @@
+{
+  "schema_version": "test-44.3-benchmark-v1",
+  "purpose": "Sanitized OCR calibration corpus manifest. No production images or extracted text are retained.",
+  "samples": [
+    {"sample_id": "english-ui", "categories": ["english", "common_ui_text"], "expected_language": "en"},
+    {"sample_id": "simplified-chinese-ui", "categories": ["simplified_chinese", "common_ui_text"], "expected_language": "zh-Hans"},
+    {"sample_id": "mixed-ui", "categories": ["mixed_english_chinese", "common_ui_text"], "expected_language": "mixed"},
+    {"sample_id": "numbers-dates", "categories": ["numbers", "dates"], "expected_language": "none"},
+    {"sample_id": "shipping-abbreviations", "categories": ["abbreviations", "ft", "f_dash_t", "f_slash_t", "eta", "etd", "dem", "det", "vgm", "bl"], "expected_language": "en"},
+    {"sample_id": "small-text", "categories": ["small_text"], "expected_language": "en"},
+    {"sample_id": "low-contrast", "categories": ["low_contrast"], "expected_language": "en"},
+    {"sample_id": "blurred", "categories": ["blurry"], "expected_language": "en"},
+    {"sample_id": "rotated", "categories": ["rotated"], "expected_language": "en"},
+    {"sample_id": "no-text", "categories": ["no_text"], "expected_language": "none"}
+  ]
+}

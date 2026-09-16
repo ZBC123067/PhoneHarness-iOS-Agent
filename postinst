@@ -1,0 +1,77 @@
+#!/bin/sh
+# C1.9 provisions the MCP authentication preference without rotating a valid
+# existing credential.  RootHide's on-device plutil accepts the explicit
+# -key/-value/-type grammar below; -replace/-string was previously interpreted
+# as an unrelated "replace" key on the target device.
+#
+# RootHide path contexts differ per process (SpringBoard / dpkg / shells), so
+# a newly generated bootstrap copy is written to every plausible Media view.
+# Existing valid tokens are never copied or rotated during an upgrade.
+
+PLIST=/var/mobile/Library/Preferences/com.witchan.ios-mcp.preferences.plist
+BOOTSTRAP_NAME=com.witchan.ios-mcp.auth-bootstrap
+umask 077
+
+is_valid_auth_token() {
+    case "$1" in
+        *[!0-9a-f]*|'') return 1 ;;
+    esac
+    [ ${#1} -eq 32 ]
+}
+
+plist_value() {
+    plutil -key "$1" "$PLIST" 2>/dev/null
+}
+
+if [ ! -f "$PLIST" ]; then
+    printf '<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n<plist version="1.0">\n<dict/>\n</plist>\n' > "$PLIST"
+fi
+
+# Remove only the malformed legacy key made by this package's former command
+# shape. It is never treated as a credential source.
+LEGACY_REPLACE=$(plist_value replace || true)
+if is_valid_auth_token "$LEGACY_REPLACE"; then
+    if ! plutil -remove replace "$PLIST" 2>/dev/null; then
+        echo "ios-mcp: failed to remove malformed legacy auth preference"
+        exit 1
+    fi
+fi
+
+TOKEN=$(plist_value authToken || true)
+TOKEN_SOURCE=PREFERENCE
+if ! is_valid_auth_token "$TOKEN"; then
+    TOKEN=$(head -c 16 /dev/urandom | od -An -tx1 | tr -cd 0-9a-f)
+    if ! is_valid_auth_token "$TOKEN"; then
+        echo "ios-mcp: token generation failed; server will fail closed"
+        exit 1
+    fi
+
+    # This is the device-proven RootHide plutil write grammar. Do not replace
+    # it with macOS-style -replace/-string flags.
+    if ! plutil -key authToken -value "$TOKEN" -type string "$PLIST" 2>/dev/null; then
+        echo "ios-mcp: failed to persist generated auth token; server will fail closed"
+        exit 1
+    fi
+    TOKEN_SOURCE=GENERATED
+fi
+
+chown mobile:mobile "$PLIST" 2>/dev/null
+chmod 600 "$PLIST" 2>/dev/null
+killall cfprefsd 2>/dev/null
+
+# Only a newly provisioned token needs a one-time paired-USB bootstrap copy.
+if [ "$TOKEN_SOURCE" = GENERATED ]; then
+    MEDIA_TARGETS="/var/mobile/Media /rootfs/var/mobile/Media /private/var/mobile/Media /var/containers/Bundle/Application/.jbroot-*/var/mobile/Media"
+    for dir in $MEDIA_TARGETS; do
+        for jbd in $dir; do
+            printf '%s' "$TOKEN" > "$jbd/$BOOTSTRAP_NAME" 2>/dev/null
+            chown mobile:mobile "$jbd/$BOOTSTRAP_NAME" 2>/dev/null
+            chmod 600 "$jbd/$BOOTSTRAP_NAME" 2>/dev/null
+        done
+    done
+    echo "ios-mcp: auth token provisioned; bootstrap copies staged under Media views"
+else
+    echo "ios-mcp: existing valid auth token preserved"
+fi
+
+exit 0
