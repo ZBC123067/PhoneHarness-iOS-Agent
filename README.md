@@ -98,6 +98,11 @@ python3 run_all_tests.py
 
 **70/70 public host unit tests pass.** They are offline and require no device.
 
+CI runs them on **macOS**, the project's host platform: a few of the host unit
+tests compile a small Objective-C harness with the Apple toolchain
+(`xcrun`/`clang`), so the complete suite is executed on macOS runners. On Linux
+the Python-only tests run, but those harness tests cannot.
+
 18 further internal regression tests are **not** included: they depend on private
 device diagnostic/evidence artifacts that are not published. They are deliberately
 not exported just to increase the count — see the roadmap item to re-derive them
