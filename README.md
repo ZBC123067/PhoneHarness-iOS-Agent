@@ -1,32 +1,215 @@
-# PhoneHarness-iOS-Agent
+# PhoneHarness
 
-**A governed privileged AI agent runtime for real iOS devices.**
+### An AI agent for the iPhone you actually control.
 
-PhoneHarness sits between an AI planner and a jailbroken iOS device's MCP (Model
-Context Protocol) tool surface. The planner proposes; PhoneHarness decides whether
-an action is permitted, binds it to a capability, executes it through a provider,
-observes the result, verifies it, and records it in an append-only ledger.
+**Jailbreak gives AI power. PhoneHarness gives that power boundaries.**
 
-## Why it exists
+AI phones are moving beyond chat.
 
-Ordinary mobile automation is *scripted*: a fixed sequence of taps, or an LLM that
-is allowed to call device tools directly. Both break in the same way — the model
-becomes the authority. A confident hallucination is executed as if it were a
-decision.
+Apple, Samsung, nubia, Doubao and other platforms are building assistants that understand context, work across apps, and increasingly act on behalf of the user.
 
-PhoneHarness treats the model as an *advisor*, never an authority. Every privileged
-action crosses explicit boundaries that can refuse, and nothing is called
-"successful" until it has been observed and verified.
+But another group of iPhone users deliberately remains on older iOS versions for **TrollStore, jailbreak, RootHide, tweaks, customization, and deeper control of their own devices**.
 
-### How it differs from ordinary GUI automation
+They may not receive the newest official AI-phone experiences.
 
-| Ordinary automation | PhoneHarness |
-|---|---|
-| Model output is executed directly | Model output is a **proposal**, checked by Validator + RiskController |
-| Tapping a capability name runs it | Capability is a **contract**; binding to a provider is a governed step |
-| Tool returns `ok` → done | Tool return is an **observation**; only the Verifier may declare success |
-| Learned memory/skills accumulate permission | Memory/Skills may inform planning, **never** authorize |
-| Errors end the run | Recovery plane: obligation ledger, restart-safe recovery, ownership fencing |
+Yet a jailbroken iPhone has something an ordinary sandboxed app does not:
+
+> **deeper access to the operating system itself.**
+
+PhoneHarness is an open-source project exploring what becomes possible when that access is combined with a modern personal AI agent — while keeping privileged execution under explicit system control.
+
+---
+
+## A Personal AI Operating Agent
+
+PhoneHarness is building toward a **Personal AI Operating Agent** for real iOS devices.
+
+It is not intended to be another chatbot or a collection of hard-coded automation scripts.
+
+The long-term user experience should be simple:
+
+> **"Help me finish this."**
+
+Behind that request, PhoneHarness works through a governed loop:
+
+```text
+Observe
+→ Understand
+→ Plan
+→ Authorize
+→ Bind
+→ Act
+→ Observe
+→ Verify
+→ Recover
+→ Learn
+```
+
+The goal is an assistant that can understand what the user wants, interact with the real device, check what actually happened, recover when things go wrong, and become more useful over time.
+
+---
+
+## What we are building toward
+
+PhoneHarness is designed as one agent runtime with multiple intelligence and interaction layers.
+
+### 🧠 Personal AI
+
+Knowledge, memory, preferences, verified experience, and reusable skills can help the assistant gradually understand its owner.
+
+But:
+
+> **Memory can inform an action. Memory can never authorize an action.**
+
+### 🤖 Local + Cloud Intelligence
+
+The architecture is designed to support both local and cloud models instead of being permanently tied to one provider.
+
+The principle is:
+
+> **Quality First. Local Preferred.**
+
+### 👁 Visual & Screenshot Intelligence
+
+Planned capabilities include OCR, Ask AI, visual understanding, screen translation, layout-aware translation, screenshot Q&A, long screenshots, annotation, error diagnosis, and structured information extraction.
+
+### ✉️ Communication Intelligence
+
+Email and messaging workflows can eventually combine understanding, translation, summarization, information extraction, reply generation, and governed sending.
+
+### 🎙 Multiple entry points
+
+The same PhoneHarness runtime is intended to be accessible through interfaces such as:
+
+- text;
+- voice;
+- Siri;
+- Action Button;
+- Shortcuts;
+- floating assistant UI;
+- ChatGPT.
+
+Different interfaces should not become different agents.
+
+They connect to the same governed runtime.
+
+### 🧑‍🏫 Learn from the user
+
+Instead of recording fixed tap coordinates, PhoneHarness is designed to learn semantic workflows from demonstrations and verified experience.
+
+### 🔄 Recover instead of blindly retrying
+
+If PhoneHarness does not know whether an action actually happened, it should first observe reality and reconcile state.
+
+> **A privileged side effect that may already have happened must never be blindly repeated.**
+
+---
+
+## Why jailbreak changes the problem
+
+A jailbroken device can expose capabilities unavailable to an ordinary sandboxed iOS application.
+
+That creates opportunities for deeper:
+
+- device observation;
+- app and process control;
+- semantic UI interaction;
+- files and diagnostics;
+- system capabilities;
+- controlled privileged helpers;
+- package and software management.
+
+But greater access also increases risk.
+
+A hallucinated chatbot answer may only be wrong.
+
+A hallucinated privileged action can change the real device.
+
+That is why PhoneHarness follows one foundational rule:
+
+> **The AI may propose an action. The AI is never the authority that permits the action.**
+
+```text
+Goal
+  ↓
+Planner
+  ↓
+Validator
+  ↓
+RiskController
+  ↓
+Governed Capability Binding
+  ↓
+Provider / Executor
+  ↓
+Fresh Observation
+  ↓
+Semantic Verifier
+  ↓
+Verified Result
+```
+
+Planning, authorization, binding, execution, observation, verification, and recovery remain separate boundaries.
+
+If authority, identity, target, evidence, or result is uncertain:
+
+**PhoneHarness fails closed.**
+
+---
+
+## Starting with iOS 17.0 — not ending there
+
+The current reference platform is:
+
+**iPhone 15 Pro · iOS 17.0 · RootHide + ElleKit**
+
+This is the project's first controlled development and validation environment — **not its intended final compatibility boundary**.
+
+After the core architecture is mature, PhoneHarness plans to research broader jailbreak-capable iOS environments and different jailbreak schemes.
+
+Longer term, the same governed agent architecture may also be explored on **macOS**.
+
+> **PhoneHarness starts with the iPhone. The architecture is intended to go further.**
+
+Compatibility will be earned through platform-specific testing and device gates rather than assumed.
+
+---
+
+## What exists today
+
+PhoneHarness is currently a **pre-release open-source runtime**.
+
+The public project focuses first on the foundations required before increasingly powerful AI capabilities can be exposed safely:
+
+```text
+Security & Authority
+→ Reliable Execution
+→ Device Capabilities
+→ Personal Intelligence
+→ Product Experience
+```
+
+The repository currently includes:
+
+- governed agent runtime foundations;
+- capability / provider separation;
+- authorization and semantic verification boundaries;
+- MCP authentication and transport hardening;
+- execution evidence / ledger concepts;
+- RootHide, rootless, and rootful build support;
+- offline host tests;
+- GitHub Actions CI;
+- security, dependency, contribution, and licensing documentation.
+
+The current public host suite passes:
+
+```text
+70 / 70 tests
+```
+
+The full Personal AI experience described above is the direction of the project — not a claim that every capability is already complete.
+
+---
 
 ## Architecture
 
