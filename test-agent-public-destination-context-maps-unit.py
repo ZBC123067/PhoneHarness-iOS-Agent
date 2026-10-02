@@ -19,6 +19,7 @@ from phoneharness_agent import (
     ActionObligationLedger,
     ContextItem,
     ContextReferenceResolver,
+    CoordinatorStateStore,
     IDENTITY_CONSENT_VERSION,
     MCPCallError,
     MCPClient,
@@ -130,6 +131,7 @@ class PublicDestinationContextMapsTests(unittest.TestCase):
             client,
             risk_controller=risk_controller,
             action_obligation_ledger=ledger,
+            coordinator_store=CoordinatorStateStore(Path(directory.name) / "coordinator.json"),
         )
         return bridge, ledger
 
@@ -219,8 +221,8 @@ class PublicDestinationContextMapsTests(unittest.TestCase):
         self.assertEqual("blocked", result["status"])
         self.assertEqual(0, result["device_action_count"])
         self.assertEqual([], tool_calls(client))
-        self.assertEqual("FAILED", result["action_obligation"]["state"])
-        self.assertEqual(result["action_obligation"], ledger.get(result["action_obligation"]["obligation_id"]))
+        self.assertIsNone(result["action_obligation"])
+        self.assertEqual((), ledger.records())
         self.assertEqual([], bridge.method_health())
 
     def test_ambiguous_destination_never_dispatches(self) -> None:

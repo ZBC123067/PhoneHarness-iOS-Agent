@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import tempfile
+import time
 import unittest
 from dataclasses import replace
 from pathlib import Path
@@ -18,6 +19,8 @@ from phoneharness_agent import (
     CapabilityMethodDefinition,
     CapabilityMethodRegistry,
     CompiledDynamicPlanStep,
+    ContextItem,
+    ContextReferenceResolver,
     CoordinatorStateStore,
     DynamicExecutionEvidence,
     DynamicObservationEvidence,
@@ -34,6 +37,7 @@ from phoneharness_agent import (
     PlannerConstraintState,
     PlannerInput,
     PublicMapsCapabilityArguments,
+    ReferenceResolutionRequest,
     RiskController,
     ScreenObservationCapabilityArguments,
     SkillRegistry,
@@ -199,6 +203,54 @@ def build_runtime(
     return runtime, ledger, bindings
 
 
+def maps_binding(
+    runtime: GovernedCapabilityBindingRuntime,
+    destination: str = "KLIA",
+) -> Any:
+    now = int(time.time())
+    task_scope = "task.test55.maps"
+    workspace_scope = "workspace.test55.maps"
+    store = runtime._destination_bindings
+    reference = store.establish_context_reference(
+        destination,
+        task_scope=task_scope,
+        workspace_scope=workspace_scope,
+        source_class="CURRENT_TURN",
+        authority="EXPLICIT_USER",
+        confidence=1000,
+        permission_state="REFERENCE_ALLOWED",
+        destination_class="PUBLIC_DESTINATION",
+        now=now,
+    )
+    item = ContextItem(
+        item_id="context.item.test55-maps",
+        context_type="conversation",
+        semantic_kind="DESTINATION",
+        semantic_ref=reference.context_reference,
+        source="CURRENT_TURN",
+        authority="EXPLICIT_USER",
+        observed_at=now,
+        expires_at=reference.expires_at,
+        confidence=1000,
+        verification_status="VERIFIED",
+        permission_scope=("REFERENCE", "PLAN"),
+        task_scope=task_scope,
+        workspace_scope=workspace_scope,
+    )
+    resolution = ContextReferenceResolver.resolve(
+        ReferenceResolutionRequest("PUBLIC_DESTINATION", task_scope, workspace_scope),
+        [item],
+        now=now,
+    )
+    binding, _ = store.bind_unique_from_resolution(
+        resolution,
+        task_scope=task_scope,
+        workspace_scope=workspace_scope,
+        now=now,
+    )
+    return binding
+
+
 _TEMP_DIRECTORIES: list[tempfile.TemporaryDirectory[str]] = []
 
 
@@ -253,7 +305,7 @@ class GovernedCapabilityBindingUnitTests(unittest.TestCase):
         owner, task, step = coordinator(planner_input, runtime)
         summary = runtime.bind_dynamic_step(
             step, task_id=task["task_id"], context_ref="context.test55.maps",
-            context_version=1, parameters=PublicMapsCapabilityArguments(MapLinkAdapter("KLIA")),
+            context_version=1, parameters=PublicMapsCapabilityArguments(maps_binding(runtime)),
         )
 
         result = owner.run_dynamic_step(task["task_id"], OWNER, expected_revision=1)
@@ -292,7 +344,7 @@ class GovernedCapabilityBindingUnitTests(unittest.TestCase):
         owner, task, step = coordinator(planner_input, runtime)
         runtime.bind_dynamic_step(
             step, task_id=task["task_id"], context_ref="context.test55.maps",
-            context_version=1, parameters=PublicMapsCapabilityArguments(MapLinkAdapter("KLIA")),
+            context_version=1, parameters=PublicMapsCapabilityArguments(maps_binding(runtime)),
         )
 
         result = owner.run_dynamic_step(task["task_id"], OWNER)
@@ -356,7 +408,7 @@ class GovernedCapabilityBindingUnitTests(unittest.TestCase):
         with self.assertRaises(CapabilityBindingPolicyError):
             runtime.bind_dynamic_step(
                 step, task_id=task["task_id"], context_ref="context.test55.observe",
-                context_version=1, parameters=PublicMapsCapabilityArguments(MapLinkAdapter("KLIA")),
+                context_version=1, parameters=PublicMapsCapabilityArguments(maps_binding(runtime)),
             )
 
     def test_forged_adapter_or_verifier_cannot_be_selected(self) -> None:
@@ -370,7 +422,7 @@ class GovernedCapabilityBindingUnitTests(unittest.TestCase):
             runtime.bind_dynamic_step(
                 replace(step, verification_requirement="observation_nonempty"),
                 task_id=task["task_id"], context_ref="context.test55.maps", context_version=1,
-                parameters=PublicMapsCapabilityArguments(MapLinkAdapter("KLIA")),
+                parameters=PublicMapsCapabilityArguments(maps_binding(runtime)),
                 adapter_id="adapter.attacker.v1",
             )
 
@@ -439,7 +491,7 @@ class GovernedCapabilityBindingUnitTests(unittest.TestCase):
         owner, task, step = coordinator(planner_input, runtime)
         summary = runtime.bind_dynamic_step(
             step, task_id=task["task_id"], context_ref="context.test55.maps",
-            context_version=1, parameters=PublicMapsCapabilityArguments(MapLinkAdapter(secret)),
+            context_version=1, parameters=PublicMapsCapabilityArguments(maps_binding(runtime, secret)),
         )
         result = owner.run_dynamic_step(task["task_id"], OWNER)
 
@@ -457,7 +509,7 @@ class GovernedCapabilityBindingUnitTests(unittest.TestCase):
         owner, task, step = coordinator(planner_input, runtime)
         runtime.bind_dynamic_step(
             step, task_id=task["task_id"], context_ref="context.test55.maps",
-            context_version=1, parameters=PublicMapsCapabilityArguments(MapLinkAdapter("KLIA")),
+            context_version=1, parameters=PublicMapsCapabilityArguments(maps_binding(runtime)),
         )
 
         result = owner.run_dynamic_step(task["task_id"], OWNER)
@@ -494,7 +546,7 @@ class GovernedCapabilityBindingUnitTests(unittest.TestCase):
         owner, task, step = coordinator(planner_input, runtime)
         runtime.bind_dynamic_step(
             step, task_id=task["task_id"], context_ref="context.test55.maps",
-            context_version=1, parameters=PublicMapsCapabilityArguments(MapLinkAdapter("KLIA")),
+            context_version=1, parameters=PublicMapsCapabilityArguments(maps_binding(runtime)),
         )
 
         result = owner.run_dynamic_step(task["task_id"], OWNER)

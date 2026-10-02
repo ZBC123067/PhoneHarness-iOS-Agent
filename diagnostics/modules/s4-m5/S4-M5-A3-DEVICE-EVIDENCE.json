@@ -1,0 +1,241 @@
+{
+  "schema_version": "phoneharness.s4m5.a3.device_evidence.v1",
+  "stage": "STAGE 4 / 5",
+  "module": "S4-M5 - FILE / LOG / CRASH INTELLIGENCE",
+  "subphase": "A3 - TARGETED REAL-DEVICE FILE / UNIFIED LOG / CRASH PROOF",
+  "status": "BLOCKED",
+  "date": "2026-09-27",
+  "target": {
+    "model": "iPhone16,1",
+    "product": "iPhone 15 Pro",
+    "ios_version": "17.0",
+    "jailbreak": "RootHide",
+    "bootstrap_version": "2.2.1",
+    "ellekit_version": "1.2-1",
+    "TARGET_DEVICE_CONFIRMED": "YES",
+    "IOS_VERSION_CONFIRMED": "17.0",
+    "BOOTSTRAP_VERSION": "2.2.1",
+    "ELLEKIT_VERSION": "1.2-1",
+    "source": "ideviceinfo (USB) + frozen S4-M4 A3 deployment records"
+  },
+  "connection_safety": {
+    "ssh_tunnel_8090_to_22_reused": true,
+    "mcp_tunnel_8091_to_8090_reused": true,
+    "EXISTING_TUNNEL_BLINDLY_KILLED_COUNT": 0,
+    "SSH_PACKAGE_CHANGED": "NO",
+    "BOOTSTRAP_OR_ELLEKIT_CHANGED": "NO",
+    "device_mutations": "none (no reboot/respring/package change/crash induced/no user data read)"
+  },
+  "device_deployment": {
+    "DEVICE_REDEPLOYMENT_REQUIRED": "NO",
+    "deployment_on_device": "1.2.2+ph1-13+roothide+s4-m4-a3-audited+debug (S4-M4 A3 proven package)",
+    "note": "S4-M5-A1/A2 changed Host Python only; device code untouched"
+  },
+  "auth_blocker": {
+    "MCP_INITIALIZE": "FAIL",
+    "MCP_TOOL_LIST": "FAIL",
+    "MCP_BASELINE_OBSERVATION": "FAIL",
+    "blocker": "The current deployment's MCP auth token is a device-local CFPreferences value (X-MCP-Token, fail-closed 401 on every endpoint). It is not exported to the host: (1) persisted batch-era tokens (1b/1c/1d/1e .mcp-token) were rotated out by the S4-M4 deployment and return 401; (2) the postinst auth-bootstrap copy under /var/mobile/Media is absent from the AFC view; (3) SSH requires interactive password/keyboard-interactive auth (no key auth) and cannot be automated in this session. Every attempt was non-interactive and non-mutating; the token value was never printed or persisted.",
+    "evidence": "authenticated probes returned 401 for all persisted token candidates; ideviceinfo/afcclient/idevicesyslog/idevicecrashreport channels (no MCP auth) worked and were used for the partial proofs below",
+    "unblock_options_for_architect": [
+      "attended (interactive SSH) retrieval of the device-local token into the sanctioned .mcp-token pattern, then rerun the MCP-gated proofs",
+      "or provision a fresh deployment with the bootstrap-copy pairing flow"
+    ]
+  },
+  "partial_proofs_via_sanctioned_usb_channels": {
+    "channels": [
+      "ideviceinfo",
+      "afcclient (AFC read-only)",
+      "idevicesyslog (5s SIGINT-bounded)",
+      "idevicecrashreport -k -e (read-only extraction)"
+    ],
+    "file_evidence": {
+      "composed": true,
+      "provider": "idevicecrashreport.usb",
+      "safe_diagnostic_excludes_full_path": true,
+      "read_content_operation_non_mutating": true,
+      "digest_prefix": "see crash results",
+      "DEVICE_FILE_SAFE_PROJECTION": "PASS"
+    },
+    "parser": {
+      "lines_total": 50941,
+      "statuses": {
+        "COMPLETE": 0,
+        "PARTIAL": 50941,
+        "UNKNOWN": 0
+      },
+      "severities": {
+        "unknown": 50941
+      },
+      "REAL_IOS17_LOG_PARSE_EXCEPTION_COUNT": 0,
+      "REAL_IOS17_LOG_TYPED_ENTRY_COUNT": 50941,
+      "REAL_IOS17_LOG_PARTIAL_OR_UNKNOWN_SUPPORTED": "YES",
+      "private_marker_lines": 9646,
+      "private_preserved_in_safe_message": 9646,
+      "PROVIDER_PRIVATE_VALUE_BEHAVIOR": "PRESERVED",
+      "capture_seconds": 5,
+      "DEVICE_LOG_CAPTURE_RUNTIME_BOUNDED": "YES"
+    },
+    "crash": {
+      "REAL_CRASH_SAMPLE_AVAILABLE": "YES",
+      "samples": 7,
+      "REAL_CRASH_PARSE_EXCEPTION_COUNT": 0,
+      "parse_results": "see per-sample entries",
+      "samples_complete": 5,
+      "samples_partial": 2,
+      "samples_unknown_type": 0
+    },
+    "privacy": {
+      "DEVICE_SENSITIVE_PATH_PERSISTENCE_COUNT": 0,
+      "DEVICE_RAW_FILE_CONTENT_PERSISTENCE_COUNT": 0,
+      "DEVICE_RAW_LOG_PERSISTENCE_COUNT": 0,
+      "DEVICE_FULL_CRASH_REPORT_PERSISTENCE_COUNT": 0,
+      "DEVICE_AUTH_SECRET_PERSISTENCE_COUNT": 0,
+      "FULL_CHAIN_OF_THOUGHT_PERSISTED": "NO",
+      "note": "evidence stores digests, counts, statuses, and bounded field values only; no raw log lines, no full reports, no sensitive device paths"
+    }
+  },
+  "crash_samples": "see crash_samples array in this file",
+  "mcp_gated_proofs_blocked": [
+    "DEVICE_PATH_RESOLUTION (list_dir/read_file MCP provider)",
+    "DEVICE_BOUNDED_FILE_READ (read_file MCP provider)",
+    "DEVICE_UNIFIED_LOG_CAPTURE (get_syslog / mcp-logreader)",
+    "DEVICE_CRASH_DIRECTORY_QUERY (get_crash_logs)",
+    "governed bounded crash read through the MCP read path"
+  ],
+  "per_sample_crash_results": [
+    {
+      "report_basename": "ActivityWidgetExtensionExtension-2026-09-27-182648.ips",
+      "bytes": 18559,
+      "parse_status": "COMPLETE",
+      "incident_type": "APP_CRASH",
+      "process_name": "ActivityWidgetExtensionExtension",
+      "pid": 2089,
+      "exception_type": "EXC_CRASH",
+      "signal": "SIGABRT",
+      "incident_id_present": true,
+      "report_digest": "025733df8963d267..."
+    },
+    {
+      "report_basename": "ActivityWidgetExtensionExtension-2026-09-27-182652.ips",
+      "bytes": 17855,
+      "parse_status": "COMPLETE",
+      "incident_type": "APP_CRASH",
+      "process_name": "ActivityWidgetExtensionExtension",
+      "pid": 2093,
+      "exception_type": "EXC_CRASH",
+      "signal": "SIGABRT",
+      "incident_id_present": true,
+      "report_digest": "30fac7c52311d47b..."
+    },
+    {
+      "report_basename": "ExcUserFault_diagnosticd-2026-09-27-204841.ips",
+      "bytes": 4934,
+      "parse_status": "COMPLETE",
+      "incident_type": "APP_CRASH",
+      "process_name": "diagnosticd",
+      "pid": 3204,
+      "exception_type": "EXC_GUARD",
+      "signal": null,
+      "incident_id_present": true,
+      "report_digest": "f624c5795239f866..."
+    },
+    {
+      "report_basename": "InstagramWidgetExtensionLockScreenCameraControl-2026-09-27-182634.ips",
+      "bytes": 4372,
+      "parse_status": "COMPLETE",
+      "incident_type": "APP_CRASH",
+      "process_name": "InstagramWidgetExtensionLockScreenCameraControl",
+      "pid": 2090,
+      "exception_type": "EXC_CRASH",
+      "signal": "SIGABRT",
+      "incident_id_present": true,
+      "report_digest": "4e632697f7a6b6a5..."
+    },
+    {
+      "report_basename": "InstagramWidgetExtensionLockScreenCameraControl-2026-09-27-182637.ips",
+      "bytes": 4372,
+      "parse_status": "COMPLETE",
+      "incident_type": "APP_CRASH",
+      "process_name": "InstagramWidgetExtensionLockScreenCameraControl",
+      "pid": 2092,
+      "exception_type": "EXC_CRASH",
+      "signal": "SIGABRT",
+      "incident_id_present": true,
+      "report_digest": "d1d682cfab84e9a2..."
+    },
+    {
+      "report_basename": "SiriSearchFeedback-2026-09-27-183141.ips",
+      "bytes": 340,
+      "parse_status": "PARTIAL",
+      "incident_type": "UNKNOWN",
+      "process_name": null,
+      "pid": null,
+      "incident_id_present": true,
+      "report_digest": "9c2be97e810edf9e..."
+    },
+    {
+      "report_basename": "SiriSearchFeedback-2026-09-27-184138.ips",
+      "bytes": 340,
+      "parse_status": "PARTIAL",
+      "incident_type": "UNKNOWN",
+      "process_name": null,
+      "pid": null,
+      "incident_id_present": true,
+      "report_digest": "9c2be97e810edf9e... (body shape differs; typed PARTIAL/UNKNOWN)"
+    }
+  ],
+  "invariants": {
+    "REAL_CRASH_FILENAME_USED_AS_SOLE_IDENTITY": "NO",
+    "ARBITRARY_KEYWORD_DETERMINES_INCIDENT_TYPE": "NO",
+    "INCIDENT_TYPE_IS_ROOT_CAUSE": "NO",
+    "REAL_DEVICE_ENVIRONMENT_PROVENANCE_IS_ROOT_CAUSE": "NO",
+    "REAL_DEVICE_MODULE_PRESENT_PROVES_CAUSATION": "NO",
+    "REAL_CRASH_EVIDENCE_CONTAINS_FULL_REPORT": "NO",
+    "RAW_MCP_FILE_RESULT_IS_TYPED_EVIDENCE": "NO",
+    "RAW_MCP_LOG_RESULT_IS_TYPED_EVIDENCE": "NO",
+    "RAW_MCP_CRASH_RESULT_IS_TYPED_EVIDENCE": "NO",
+    "DEVICE_EVIDENCE_AUTO_ROOT_CAUSE_COUNT": 0,
+    "SECOND_ARTIFACT_STORE_ADDED": "NO",
+    "SECOND_TRACE_SYSTEM_ADDED": "NO",
+    "SECOND_FRESHNESS_SYSTEM_ADDED": "NO",
+    "GENERIC_SHELL_ADDED": "NO",
+    "PROCESS_SERVICE_RUNTIME_ADDED": "NO",
+    "PACKAGE_MANAGER_ADDED": "NO",
+    "SOFTWARE_MANAGER_ADDED": "NO",
+    "HEAVY_SYMBOLICATION_IMPLEMENTED": "NO"
+  },
+  "production_delta": {
+    "A3_PRODUCTION_SYMBOL_DELTA": "MINIMAL",
+    "defect_found_by_device_testing": "the A1 crash parser only attempted JSON on the first line/whole document, so modern .ips bodies (multi-line JSON after the header line) yielded PARTIAL with process/pid/exception missing; fixed by parsing the header, per-line JSON, and the remainder body document, merging scalar fields and reading exception.type/exception.signal",
+    "fix_scope": "parser normalization only; no schema/architecture change; all 100 focused tests pass after the fix",
+    "host_tests_updated": "A2 suite re-run: 100/100 PASS"
+  },
+  "validation": {
+    "s4_m5_focused": "100/100 PASS",
+    "s4_m4_compatibility": "51/51 PASS",
+    "s4_m3_compatibility": "50/50 PASS",
+    "s4_m2_compatibility": "45/45 PASS",
+    "s4_m1_compatibility": "49/49 PASS",
+    "s4_m0_compatibility": "38/38 PASS",
+    "complete_offline_host_regression": "116/116 PASS (117.45s)",
+    "static_check": "PASS",
+    "diff_check": "PASS (delta limited to phoneharness_diagnostics.py parser normalization, the focused test file, and this evidence artifact)",
+    "frozen_integrity": "PASS (all frozen modules byte-identical to their pins)"
+  },
+  "compatibility": {
+    "S4_M4_COMPATIBILITY": "PASS",
+    "S4_M3_COMPATIBILITY": "PASS",
+    "S4_M2_COMPATIBILITY": "PASS",
+    "S4_M1_COMPATIBILITY": "PASS",
+    "S4_M0_COMPATIBILITY": "PASS",
+    "STAGE_3_COMPATIBILITY": "PASS",
+    "STAGE_2_COMPATIBILITY": "PASS"
+  },
+  "blocking_debt_count": 0,
+  "blocking_environment_item": "device MCP auth token not available through non-interactive channels",
+  "architect_review_required": true,
+  "real_device_proof_still_required": "YES (MCP-gated provider proofs listed above)",
+  "ready_for_s4_m5_b_closeout": "NO",
+  "next_step": "RETURN S4-M5-A3 RESULT TO PRINCIPAL ARCHITECT"
+}

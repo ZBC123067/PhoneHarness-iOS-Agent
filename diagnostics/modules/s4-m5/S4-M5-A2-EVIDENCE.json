@@ -1,0 +1,311 @@
+{
+  "schema_version": "phoneharness.s4m5.a2.evidence.v1",
+  "stage": "STAGE 4 / 5",
+  "module": "S4-M5 - FILE / LOG / CRASH INTELLIGENCE",
+  "subphase": "A2 - ADVERSARIAL PATH / PRIVACY / PARSER / CORRELATION HARDENING",
+  "status": "PASS",
+  "date": "2026-09-27",
+  "host_only_foundation": true,
+  "real_device_action_performed": false,
+  "production_device_execution_behavior_changed": false,
+  "a1_contract_redesigned": false,
+  "changed_files": [
+    "phoneharness_diagnostics.py (MINIMAL defect-driven hardening, see production_delta)",
+    "test-agent-s4-m5-diagnostics-unit.py (24 A2 adversarial tests added; one A1 correlation test updated to carry its claimed window under the strengthened reason gate)",
+    "diagnostics/modules/s4-m5/S4-M5-A2-EVIDENCE.json (new)"
+  ],
+  "changed_symbols": [
+    "phoneharness_diagnostics.py: _SECRET_ASSIGNMENT redaction extended to token/access_token/refresh_token/api_key/apikey; new _AUTH_VALUE pattern redacts two-token Authorization values (e.g. 'Authorization: Basic SECRET'); FileResourceRef.path excluded from dataclass repr/str; _classify_incident now uses only structured report fields (exception_type/signal/termination_reason/process_context) \u2014 free report text, stack lines, and module names no longer determine the incident type; DiagnosticCorrelation requires each claimed reason's supporting field/window, typed evidence, and bounds the correlation window to 24h (MAX_CORRELATION_WINDOW_MS)"
+  ],
+  "artifact_hashes": {
+    "phoneharness_diagnostics.py_a1_published": "f7e210d7b120e2e7 (S4-M5-A1 evidence pin)",
+    "phoneharness_diagnostics.py_a2_current": "832b715fb32bd092060defcdf5bba8a8fe170c20f8d970900432581fc6ef0bb7",
+    "test-agent-s4-m5-diagnostics-unit.py": "686ca1536320f1d9881df95c99579092396a85af430a6009d0c07ff0e10f9fff"
+  },
+  "production_delta": {
+    "A2_PRODUCTION_SYMBOL_DELTA": "MINIMAL",
+    "defects_found_by_a2_tests": [
+      "DEFECT-1 (redaction escape): 'Authorization: Basic SECRET' leaked SECRET \u2014 the assignment pattern consumed only one value token ('Basic'), leaving the credential exposed; new _AUTH_VALUE pattern consumes scheme+credential",
+      "DEFECT-2 (token matrix gaps): token=/access_token=/refresh_token=/api_key=/apikey forms were not redacted at all; assignment pattern extended",
+      "DEFECT-3 (serialization privacy): repr()/str() of FileResourceRef (and nested FileEvidence/CrashEvidence projections) exposed the full sensitive path; path field excluded from repr while attribute access is unchanged",
+      "DEFECT-4 (keyword classification): free report text (binary-image module names, user strings) could determine the incident type ('WatchdogSomething' module -> WATCHDOG, 'hang' in user text -> HANG); classification now requires structured report fields only",
+      "DEFECT-5 (correlation): claimed reasons without supporting fields were accepted and the correlation window was unbounded; reasons now require their supporting field/window/evidence and the window is hard-bounded to 24h"
+    ],
+    "fix_scope": "redaction pattern extension, repr exclusion, classification input restriction, correlation validation \u2014 all inside the A1 module seam; no schema, architecture, or frozen-contract change; all 76 A1 tests pass on the hardened code (one A1 correlation test updated to carry the window it claims)",
+    "architecture_or_frozen_contract_changes_required": false
+  },
+  "file_paths": {
+    "EMPTY_PATH_ACCEPTED_COUNT": 0,
+    "RELATIVE_PATH_ACCEPTED_COUNT": 0,
+    "DOT_DOT_TRAVERSAL_ACCEPTED_COUNT": 0,
+    "CONTROL_CHARACTER_PATH_ACCEPTED_COUNT": 0,
+    "OVERSIZED_PATH_ACCEPTED_COUNT": 0,
+    "PATH_VALIDATION_DETERMINISTIC": "YES",
+    "matrix_proven": [
+      "empty",
+      "relative",
+      ".",
+      "..",
+      "/a/../b",
+      "/a/./b",
+      "/a//b",
+      "multi-traversal",
+      "trailing slashes",
+      "NUL/TAB/LF/CR/DEL",
+      "oversized",
+      "root path",
+      "unicode",
+      "long component",
+      "%2e%2e never decoded (literal)"
+    ],
+    "LEXICALLY_NORMALIZED_PATH_IS_SYMLINK_SAFE": "NO",
+    "NORMALIZED_PATH_IS_AUTHORIZATION": "NO",
+    "NORMALIZATION_PROVES_PROVIDER_TARGET": "NO"
+  },
+  "path_identity": {
+    "FILE_PATH_EQUALITY_PROVES_SAME_CONTENT": "NO",
+    "SAME_MTIME_PROVES_SAME_CONTENT": "NO",
+    "SAME_SIZE_PROVES_SAME_CONTENT": "NO",
+    "SAME_SIZE_AND_MTIME_PROVES_GLOBAL_IDENTITY": "NO",
+    "same_stats_other_path": "UNSTABLE (path digest differs)"
+  },
+  "path_privacy": {
+    "FULL_PATH_IS_SAFE_DIAGNOSTIC": "NO",
+    "SAFE_FILE_DIAGNOSTIC_CONTAINS_FULL_PATH": "NO",
+    "PATH_DIGEST_EXPOSES_RAW_PATH": "NO",
+    "basename_policy": "basename exposed alone only when it matches the implemented safe charset; directory structure never exposed; non-conforming basenames withheld; repr/str never include the path",
+    "SAFE_SERIALIZATION_EXPOSES_FULL_PATH_COUNT": 0
+  },
+  "file_resource": {
+    "FILE_RESOURCE_REF_IS_AUTHORIZATION": "NO",
+    "FILE_SCOPE_IS_AUTHORIZATION": "NO",
+    "PATH_DIGEST_IS_AUTHORIZATION": "NO",
+    "RESOURCE_VALIDATION_AUTO_LEGALIZES_OPERATION": "NO",
+    "FILE_EVIDENCE_CONTAINS_PLAINTEXT_BY_DEFAULT": "NO",
+    "FILE_EVIDENCE_CONTAINS_BASE64_PAYLOAD_BY_DEFAULT": "NO",
+    "RAW_FILE_CONTENT_AUTO_PERSISTED": "NO",
+    "CONTENT_READ_REQUIRES_EXPLICIT_OPERATION": "YES",
+    "UNBOUNDED_FILE_READ_ALLOWED_BY_TYPED_PATH": "NO",
+    "INVALID_FILE_READ_BOUND_ACCEPTED_COUNT": 0,
+    "FILE_TRUNCATION_REPRESENTABLE": "YES",
+    "bounds": "1 byte .. 4 MiB typed request bound; zero/negative/over-max/bool/string/huge rejected"
+  },
+  "file_toctou": {
+    "FILE_CHANGED_DURING_READ_ACCEPTED": "NO",
+    "UNSTABLE_FILE_READ_FAILS_CLOSED": "YES",
+    "PREPARED_FILE_TARGET_AUTO_CURRENT": "NO",
+    "MATCHING_BEFORE_AFTER_METADATA_PROVES_ATOMIC_STABILITY": "NO",
+    "FILE_STABLE_READ_PROVES_GLOBAL_IDENTITY": "NO",
+    "CONTENT_DIGEST_IS_AUTHORIZATION": "NO",
+    "non_overclaim": "FileReadStatus.STABLE is metadata-stability only; the contract has no atomic/global-identity claim and the docstring states it"
+  },
+  "file_operations": {
+    "FILE_OPERATION_KIND_IS_AUTHORIZATION": "NO",
+    "FILE_WRITE_IS_MUTATION": "YES",
+    "FILE_DELETE_IS_DESTRUCTIVE_MUTATION": "YES",
+    "READ_TO_WRITE_AUTO_ESCALATION_COUNT": 0,
+    "non_mutating": [
+      "LIST",
+      "READ_METADATA",
+      "READ_CONTENT"
+    ],
+    "mutating": [
+      "CREATE",
+      "WRITE",
+      "APPEND",
+      "MOVE_OR_RENAME"
+    ],
+    "destructive": [
+      "DELETE"
+    ]
+  },
+  "log_window": {
+    "INVALID_LOG_WINDOW_ACCEPTED_COUNT": 0,
+    "LOG_WINDOW_SECONDS_HARD_BOUNDED": "YES",
+    "LOG_WINDOW_LINES_HARD_BOUNDED": "YES",
+    "NO_UNBOUNDED_LOG_STREAM": "YES",
+    "NO_UNBOUNDED_LOG_ACCUMULATION": "YES",
+    "clamps": "seconds <= 60, lines <= 5000 (requested values above are clamped, non-positive rejected)"
+  },
+  "log_parser": {
+    "MALFORMED_LOG_PARSER_EXCEPTION_COUNT": 0,
+    "UNPARSEABLE_LOG_FABRICATED_METADATA_COUNT": 0,
+    "UNKNOWN_LOG_FIELDS_REMAIN_UNKNOWN": "YES",
+    "matrix": [
+      "empty",
+      "whitespace",
+      "missing timestamp/process/pid",
+      "invalid timestamp",
+      "unknown level -> unknown",
+      "field order",
+      "embedded newline",
+      "tab/control",
+      "ANSI escapes (deterministic passthrough)",
+      "unicode",
+      "99999-char message truncated to 2048",
+      "partially structured",
+      "unknown extra fields ignored"
+    ],
+    "UNBOUNDED_LOG_FIELD_ACCEPTED_FOR_DURABLE_EVIDENCE": "NO",
+    "field_bound": "safe_message <= 2048 chars (MAX_LOG_MESSAGE)"
+  },
+  "log_redaction": {
+    "RAW_SECRET_LOG_VALUE_IN_SAFE_PROJECTION_COUNT": 0,
+    "MCP_TOKEN_REDACTION": "PASS",
+    "AUTHORIZATION_HEADER_REDACTION": "PASS",
+    "PASSWORD_PATTERN_REDACTION": "PASS",
+    "TOKEN_PATTERN_REDACTION": "PASS",
+    "URL_SECRET_REDACTION": "PASS",
+    "PROVIDER_PRIVATE_VALUE_RECONSTRUCTED_COUNT": 0,
+    "matrix_covered": [
+      "X-MCP-Token/x-mcp-token",
+      "Authorization Bearer/Basic (two-token)",
+      "password=/passwd=/passcode=/otp=",
+      "token=/access_token=/refresh_token= (dash/space variants)",
+      "api_key=/apikey=/api key=",
+      "URL userinfo/query/fragment"
+    ],
+    "RAW_LOG_LINE_AUTO_PERSISTED": "NO",
+    "LOG_ENTRY_IS_AUTHORIZATION": "NO",
+    "LOG_WINDOW_EVIDENCE_IS_AUTHORIZATION": "NO"
+  },
+  "crash": {
+    "GOVERNED_CRASH_READ_USES_UNBOUNDED_RAW_READ": "NO",
+    "CRASH_BOUNDED_READ_REQUIRED": "YES",
+    "TRUNCATED_CRASH_REPORT_REPRESENTABLE": "YES",
+    "LEGACY_RAW_CRASH_READ_IS_TYPED_EVIDENCE": "NO",
+    "MALFORMED_CRASH_PARSER_EXCEPTION_COUNT": 0,
+    "UNKNOWN_CRASH_FORMAT_TYPED": "YES",
+    "PARTIAL_CRASH_REPORT_SUPPORTED": "YES",
+    "matrix": [
+      "empty",
+      "whitespace",
+      "invalid structured header",
+      "truncated JSON",
+      "missing process/timestamp/incident",
+      "unknown exception",
+      "invalid/negative pid",
+      "conflicting duplicate fields",
+      "unexpected fields",
+      "overlong module line",
+      "binary data",
+      "unknown format",
+      "oversized report -> acquisition_truncated"
+    ],
+    "FILENAME_DERIVED_FAKE_INCIDENT_ID_COUNT": 0,
+    "TIMESTAMP_DERIVED_FAKE_INCIDENT_ID_COUNT": 0,
+    "identity_priority": "incident/report UUID preferred when present; otherwise bounded report digest + metadata digest composition",
+    "CONFLICTING_INCIDENT_ID_AUTO_MERGED": "NO",
+    "CONFLICTING_CRASH_EVIDENCE_SILENTLY_DISCARDED": "NO",
+    "no_merge_or_dedup_api_exists": true,
+    "CRASH_FILENAME_IS_IDENTITY": "NO",
+    "SAME_FILENAME_PROVES_SAME_INCIDENT": "NO",
+    "SAME_TIMESTAMP_PROVES_SAME_INCIDENT": "NO",
+    "SAME_PROCESS_PROVES_SAME_INCIDENT": "NO",
+    "CRASH_IDENTITY_IS_AUTHORIZATION": "NO",
+    "ARBITRARY_KEYWORD_DETERMINES_INCIDENT_TYPE": "NO",
+    "INCIDENT_TYPE_IS_ROOT_CAUSE": "NO",
+    "UNKNOWN_EVIDENCE_FORCED_TO_KNOWN_INCIDENT_TYPE": "NO",
+    "ENVIRONMENT_PROVENANCE_IS_ROOT_CAUSE": "NO",
+    "INJECTION_PRESENT_PROVES_CAUSATION": "NO",
+    "TWEAK_NAME_IN_REPORT_PROVES_CAUSATION": "NO",
+    "ELLEKIT_PRESENT_PROVES_CAUSATION": "NO",
+    "BOOTSTRAP_PRESENT_PROVES_CAUSATION": "NO",
+    "CRASH_EVIDENCE_CONTAINS_FULL_RAW_REPORT_BY_DEFAULT": "NO",
+    "RAW_CRASH_REPORT_AUTO_PERSISTED": "NO",
+    "CRASH_EVIDENCE_IS_AUTHORIZATION": "NO",
+    "classification": "structured fields only (exception_type/signal/termination_reason/process_context/process); free text, stack lines, and binary-image module names are excluded after the A2 fix"
+  },
+  "correlation": {
+    "UNBOUNDED_DIAGNOSTIC_CORRELATION_WINDOW_ALLOWED": "NO",
+    "INVALID_CORRELATION_WINDOW_ACCEPTED_COUNT": 0,
+    "window_bound": "MAX_CORRELATION_WINDOW_MS = 86,400,000 (24h); reversed/negative/extreme rejected",
+    "PID_MATCH_OUTSIDE_TIME_WINDOW_CORRELATED": "NO",
+    "PID_MATCH_ALONE_PROVES_SAME_PROCESS_INSTANCE": "NO",
+    "BUNDLE_MATCH_ALONE_PROVES_CAUSATION": "NO",
+    "PROCESS_NAME_MATCH_ALONE_PROVES_IDENTITY": "NO",
+    "TIME_MATCH_ALONE_PROVES_CAUSATION": "NO",
+    "CORRELATION_REASON_WITHOUT_EVIDENCE_COUNT": 0,
+    "reason_gate": "every claimed reason requires its supporting field/window/references; all six reasons mapped",
+    "DIAGNOSTIC_CORRELATION_IS_CAUSATION": "NO",
+    "DIAGNOSTIC_CORRELATION_IS_AUTHORIZATION": "NO",
+    "HIGH_CORRELATION_AUTO_ROOT_CAUSE": "NO",
+    "CORRELATED_CRASH_AUTO_MUTATION_COUNT": 0,
+    "reasons_exposed": [
+      "TIME_WINDOW_MATCH",
+      "PROCESS_ID_MATCH",
+      "BUNDLE_ID_MATCH",
+      "TRACE_REFERENCE_MATCH",
+      "OBSERVATION_REFERENCE_MATCH",
+      "ARTIFACT_REFERENCE_MATCH"
+    ]
+  },
+  "artifact_trace_boundary": {
+    "SECOND_ARTIFACT_STORE_ADDED": "NO",
+    "SECOND_TRACE_SYSTEM_ADDED": "NO",
+    "CRASH_DATABASE_ADDED": "NO",
+    "LOG_DATABASE_ADDED": "NO",
+    "FILE_EVIDENCE_STORE_ADDED": "NO",
+    "evidence_references_only": "ObservationRef/ArtifactRef composition with task-scope consistency checks"
+  },
+  "serialization": {
+    "SAFE_SERIALIZATION_EXPOSES_FULL_PATH_COUNT": 0,
+    "SAFE_SERIALIZATION_EXPOSES_RAW_LOG_SECRET_COUNT": 0,
+    "SAFE_SERIALIZATION_EXPOSES_FULL_CRASH_REPORT_COUNT": 0,
+    "fix": "FileResourceRef.path excluded from repr/str; safe_diagnostic projections verified for path/log/crash"
+  },
+  "digests": {
+    "PATH_DIGEST_IS_AUTHORIZATION": "NO",
+    "CONTENT_DIGEST_IS_AUTHORIZATION": "NO",
+    "RAW_LOG_DIGEST_IS_AUTHORIZATION": "NO",
+    "CRASH_REPORT_DIGEST_IS_AUTHORIZATION": "NO",
+    "DIGEST_MATCH_PROVES_ROOT_CAUSE": "NO"
+  },
+  "no_freshness_duplication": {
+    "SECOND_FRESHNESS_SYSTEM_ADDED": "NO",
+    "declared_class_scan": "no FileEpoch/LogEpoch/CrashEpoch/FreshnessRuntime/FreshnessRequirement/Store classes"
+  },
+  "ownership_and_gates": {
+    "PROCESS_SERVICE_RUNTIME_ADDED": "NO",
+    "GENERIC_SHELL_ADDED": "NO",
+    "PACKAGE_MANAGER_ADDED": "NO",
+    "SOFTWARE_MANAGER_ADDED": "NO",
+    "HEAVY_SYMBOLICATION_IMPLEMENTED": "NO",
+    "LATEST_OS_CRASH_API_REQUIRED": "NO",
+    "DEPLOYMENT_TARGET_CHANGED": "NO",
+    "S4_M4_COMPAT_DEBT": "TEXT_INPUT_REAL_DEVICE_COMPAT_GATE = OPEN_DEFERRED preserved in roadmap + S4-M4 closeout (asserted in test)"
+  },
+  "validation": {
+    "s4_m5_focused": "100/100 PASS (76 A1 + 24 A2)",
+    "s4_m4_compatibility": "51/51 PASS",
+    "s4_m3_compatibility": "50/50 PASS",
+    "s4_m2_compatibility": "45/45 PASS",
+    "s4_m1_compatibility": "49/49 PASS",
+    "s4_m0_compatibility": "38/38 PASS",
+    "complete_offline_host_regression": "116/116 PASS (121.92s)",
+    "static_check": "PASS",
+    "diff_check": "PASS (delta limited to phoneharness_diagnostics.py five hardening fixes, the focused test file, and this evidence artifact)",
+    "frozen_integrity": "PASS (capabilities/region/perception/semantic_ui/observation/contracts/multistep byte-identical to their frozen pins)"
+  },
+  "compatibility": {
+    "S4_M4_COMPATIBILITY": "PASS",
+    "S4_M3_COMPATIBILITY": "PASS",
+    "S4_M2_COMPATIBILITY": "PASS",
+    "S4_M1_COMPATIBILITY": "PASS",
+    "S4_M0_COMPATIBILITY": "PASS",
+    "STAGE_3_COMPATIBILITY": "PASS",
+    "STAGE_2_COMPATIBILITY": "PASS"
+  },
+  "blocking_debt_count": 0,
+  "architect_review_required": false,
+  "real_device_proof_still_required": true,
+  "real_device_proof_scope": [
+    "mcp-logreader boundedness + real iOS 17 unified-log format/privacy behavior",
+    "crash-report directories/formats/permissions on target device",
+    "RootHide path visibility + symlink behavior",
+    "redaction behavior over real logs/crash reports",
+    "file TOCTOU realities"
+  ],
+  "ready_for_s4_m5_a3": true,
+  "next_step": "RETURN S4-M5-A2 RESULT TO PRINCIPAL ARCHITECT"
+}

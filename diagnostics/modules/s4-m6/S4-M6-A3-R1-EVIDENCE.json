@@ -1,0 +1,261 @@
+{
+  "schema_version": "phoneharness.s4-m6-a3-r1-evidence.v1",
+  "module": "S4-M6",
+  "submodule": "S4-M6-A3-R1",
+  "status": "PASS",
+  "IMPLEMENTATION_FRESHNESS_GATE": "PASS",
+  "DEVICE_MODEL": "iPhone16,1",
+  "DEVICE_OS": "iOS 17.0 (21A327)",
+  "BOOTSTRAP_VERSION": "2.2.1",
+  "ELLEKIT_VERSION": "1.2-1",
+  "DEVICE_ACCESS_PROVENANCE": {
+    "transport": "existing iproxy 127.0.0.1:8090 to device SSH port 22",
+    "paired_network_device_used": true,
+    "device_configuration_changed": false,
+    "mcp_token_accessed": false
+  },
+  "PROCESS_PROVIDER_CANDIDATES_TESTED": [
+    {
+      "candidate": "APPLE_LAUNCHCTL_LIST",
+      "classification": "AVAILABLE",
+      "provenance": "rootful launchctl through established read-only SSH"
+    },
+    {
+      "candidate": "APPLE_LAUNCHCTL_PRINT",
+      "classification": "AVAILABLE",
+      "provenance": "rootful launchctl through established read-only SSH"
+    },
+    {
+      "candidate": "APPLE_LAUNCHCTL_PROCINFO",
+      "classification": "PARTIAL",
+      "provenance": "rootful launchctl through established read-only SSH",
+      "safe_fields_observed": [
+        "PID",
+        "UNIQUE_PID_FIELD",
+        "PROCESS_NAME",
+        "EXECUTABLE_LOCATION"
+      ],
+      "excluded_from_evidence": [
+        "RAW_PATH",
+        "RAW_ENVIRONMENT",
+        "ENTITLEMENTS",
+        "PORT_VALUES"
+      ]
+    },
+    {
+      "candidate": "APPLE_LAUNCHCTL_RUNSTATS",
+      "classification": "UNAVAILABLE",
+      "result": "NO_METRICS_RETURNED"
+    },
+    {
+      "candidate": "JBROOT_LAUNCHCTL_LIST_PRINT",
+      "classification": "AVAILABLE",
+      "provenance": "RootHide-resolved launchctl through established read-only SSH"
+    },
+    {
+      "candidate": "DIRECT_PROC_LISTALLPIDS",
+      "classification": "NOT_TESTED",
+      "reason": "no private API binding or device probe binary introduced in R1"
+    },
+    {
+      "candidate": "DIRECT_PROC_PIDINFO",
+      "classification": "NOT_TESTED",
+      "reason": "no private API binding or device probe binary introduced in R1"
+    },
+    {
+      "candidate": "DIRECT_PROC_PIDPATH_AUDITTOKEN",
+      "classification": "NOT_TESTED",
+      "reason": "no arbitrary-process audit token provider exists in the bounded R1 path"
+    },
+    {
+      "candidate": "DIRECT_PROC_PID_RUSAGE",
+      "classification": "NOT_TESTED",
+      "reason": "no private API binding or device probe binary introduced in R1"
+    }
+  ],
+  "PROCESS_ENUMERATION_RESULT": {
+    "classification": "PARTIAL",
+    "provider": "APPLE_LAUNCHCTL_LIST",
+    "loaded_service_definition_count": 629,
+    "running_service_instance_count": 389,
+    "bounded_sample_count": 20,
+    "completeness": "PARTIAL",
+    "reason": "launchctl inventory is service-oriented and is not claimed as a complete process table"
+  },
+  "PROCESS_COUNT_OBSERVED": 389,
+  "PROCESS_COUNT_SEMANTICS": "LAUNCHD_REPORTED_RUNNING_SERVICE_INSTANCES_NOT_TOTAL_PROCESS_COUNT",
+  "INSTANCE_DISCRIMINATORS_OBSERVED": [
+    {
+      "kind": "PID",
+      "classification": "AVAILABLE",
+      "canonical_strength": "PID_ONLY"
+    },
+    {
+      "kind": "UNIQUE_ID",
+      "classification": "AVAILABLE_PARTIAL",
+      "observed_field": "LAUNCHCTL_PROCINFO_UNIQUE_PID",
+      "repeated_snapshot_stability": "PASS",
+      "lifecycle_reuse_semantics_proven": false
+    },
+    {
+      "kind": "PROVIDER_GENERATION_MARKER",
+      "classification": "AVAILABLE_PARTIAL",
+      "observed_field": "LAUNCHCTL_SERVICE_RUN_COUNT_PLUS_MANAGER_SESSION",
+      "repeated_snapshot_stability": "PASS",
+      "cross_restart_uniqueness_proven": false
+    },
+    {
+      "kind": "PROVIDER_SESSION_PROVENANCE",
+      "classification": "AVAILABLE",
+      "raw_value_persisted": false
+    }
+  ],
+  "START_TIME_AVAILABLE": "NO",
+  "PIDVERSION_AVAILABLE": "NO",
+  "UNIQUE_ID_AVAILABLE": "AVAILABLE_PARTIAL",
+  "AUDIT_TOKEN_IDENTITY_AVAILABLE": "NOT_TESTED_NO_GENERAL_PROVIDER",
+  "EXECUTABLE_IDENTITY_AVAILABLE": "PARTIAL",
+  "EXECUTABLE_IDENTITY_DETAIL": "normalized executable location was available; content digest was available for the RootHide helper sample but unavailable for sampled system executables",
+  "BUNDLE_IDENTITY_AVAILABLE": "PARTIAL",
+  "BUNDLE_IDENTITY_DETAIL": "SpringBoard and UIKitApplication identities exposed bundle relations; daemon bundle identifiers were not universal",
+  "INSTANCE_IDENTITY_STRENGTH_RESULT": "PID_ONLY_CANONICAL_WITH_UNPROVEN_PARTIAL_DISCRIMINATOR_CANDIDATES",
+  "PID_ONLY_STABLE_IDENTITY": false,
+  "STRONG_IDENTITY_IS_AUTHORIZATION": false,
+  "REPEATED_SNAPSHOT_STABILITY": {
+    "rounds": 3,
+    "processes_per_round": 3,
+    "observation_timestamps_advanced": true,
+    "pid_fields_stable": true,
+    "unique_pid_fields_stable": true,
+    "service_run_counts_stable": true,
+    "active_pid_reuse_test_performed": false,
+    "identity_strength_promoted_to_strong": false
+  },
+  "RESOURCE_METRICS_MATRIX": {
+    "CPU": "UNAVAILABLE",
+    "MEMORY": "UNAVAILABLE",
+    "THREADS": "UNAVAILABLE",
+    "WAKEUPS": "UNAVAILABLE",
+    "PROCESS_STATE": "UNRELIABLE",
+    "FOREGROUND_RELATION": "UNAVAILABLE",
+    "SERVICE_STATE": "AVAILABLE",
+    "missing_metric_representation": "UNKNOWN_NOT_ZERO",
+    "continuous_monitoring": false
+  },
+  "SERVICE_PROVIDER_CANDIDATES_TESTED": [
+    {
+      "candidate": "APPLE_LAUNCHCTL_LIST",
+      "classification": "AVAILABLE"
+    },
+    {
+      "candidate": "APPLE_LAUNCHCTL_PRINT",
+      "classification": "AVAILABLE"
+    },
+    {
+      "candidate": "JBROOT_LAUNCHCTL_LIST_PRINT",
+      "classification": "AVAILABLE"
+    }
+  ],
+  "SERVICE_DISCOVERY_RESULT": {
+    "classification": "AVAILABLE_PARTIAL",
+    "known_running_service": "RUNNING",
+    "known_loaded_not_running_service": "STOPPED",
+    "unknown_service": "UNAVAILABLE",
+    "not_listed_means_stopped": false
+  },
+  "SERVICE_STATE_SEMANTICS_RESULT": "PASS",
+  "BOOTSTRAP_2_2_1_COMPAT_GATE": "PARTIAL",
+  "BOOTSTRAP_2_2_1_COMPAT_DETAIL": {
+    "version_proven": true,
+    "jbroot_resolution_available": true,
+    "rootful_launchctl_read_only_observation": "PASS",
+    "jbroot_launchctl_read_only_observation": "PASS",
+    "roothide_service_discovery": "PASS",
+    "jbroot_program_location_observed": true,
+    "service_mutation_tested": false,
+    "private_libproc_provider_tested": false
+  },
+  "CONTROL_PLANE_SELF_IDENTIFICATION_RESULT": {
+    "classification": "PASS_PARTIAL",
+    "springboard_host_identity": "AVAILABLE",
+    "phoneharness_helper_service_identity": "AVAILABLE",
+    "openssh_service_identity": "AVAILABLE",
+    "ios_mcp_injection_package_identity": "AVAILABLE",
+    "mcp_helpers_current_process_identity": "NOT_RUNNING_OR_NOT_OBSERVED",
+    "name_substring_used_as_authority": false,
+    "authorization": false
+  },
+  "SYSTEM_SECURITY_TARGET_REALITY": {
+    "normal_user_process_sample": "AVAILABLE",
+    "system_critical_sample": "AVAILABLE",
+    "security_sensitive_sample": "AVAILABLE",
+    "unknown_unclassified_semantics": "PRESERVED_AS_UNKNOWN_TARGET",
+    "classification_is_authorization": false
+  },
+  "S4_M4_COMPOSITION_RESULT": {
+    "classification": "PASS_PARTIAL",
+    "exact_bundle_relation_available_for_uikit_app_services": true,
+    "frontmost_app_observation_performed": false,
+    "process_provider_is_app_lifecycle_authority": false
+  },
+  "S4_M5_COMPOSITION_RESULT": {
+    "classification": "PASS_HOST_CONTRACT_REAL_PID_PROVENANCE_AVAILABLE",
+    "live_log_or_crash_collection_performed": false,
+    "correlation_is_causation": false
+  },
+  "SHARED_SEMANTIC_CONTEXT_REAL_EVIDENCE_RESULT": "PASS",
+  "SHARED_SEMANTIC_CONTEXT_DETAIL": {
+    "typed_process_identity": true,
+    "typed_identity_strength": true,
+    "typed_service_state": true,
+    "typed_completeness": true,
+    "typed_provenance": true,
+    "authorization": false,
+    "new_semantic_store_added": false,
+    "new_ai_runtime_added": false,
+    "new_memory_system_added": false
+  },
+  "DEVICE_PROBE_COUNT": 21,
+  "DEVICE_PROBE_PROFILE": {
+    "bounded_ssh_sessions": 21,
+    "high_frequency_polling": false,
+    "continuous_scanner": false,
+    "aggressive_syslog_collection": false,
+    "device_observation_created_diagnostic_noise": false
+  },
+  "PROCESS_MUTATION_PERFORMED": false,
+  "SERVICE_MUTATION_PERFORMED": false,
+  "MUTATION_PERFORMED": false,
+  "DEFERRED_TO_CONTROLLED_MUTATION_PROOF": [
+    "PID_REUSE_ACTIVE_PROOF",
+    "PROCESS_TERMINATE_SIGNAL_SUSPEND_RESUME",
+    "SERVICE_START_STOP_RESTART",
+    "SERVICE_MUTATION_ROOT_HIDE_COMPATIBILITY"
+  ],
+  "EXPECTED_WRITE_SET": [
+    "phoneharness_process_service_observation.py",
+    "test-agent-s4-m6-process-provider-reality-unit.py",
+    "diagnostics/modules/s4-m6/S4-M6-A3-R1-EVIDENCE.json"
+  ],
+  "ACTUAL_WRITE_SET": [
+    "phoneharness_process_service_observation.py",
+    "test-agent-s4-m6-process-provider-reality-unit.py",
+    "diagnostics/modules/s4-m6/S4-M6-A3-R1-EVIDENCE.json"
+  ],
+  "UNAUTHORIZED_WRITE_COUNT": 0,
+  "FROZEN_PREFLIGHT": "PASS",
+  "FROZEN_POSTFLIGHT": "PASS",
+  "S4_M6_A1_FOCUSED_RESULT": "53/53 PASS",
+  "S4_M6_A2_FOCUSED_RESULT": "54/54 PASS",
+  "S4_M6_A3_R1_FOCUSED_RESULT": "18/18 PASS",
+  "S4_M6_FOCUSED_RESULT": "125/125 PASS",
+  "S4_M5_FOCUSED_RESULT": "100/100 PASS",
+  "FULL_HOST_REGRESSION": "119/119 PASS",
+  "STATIC_CHECK": "PASS",
+  "ROADMAP_STRUCTURE_CHECK": "38/38 PASS",
+  "S4_M5_SHA_EXACT_MATCH": true,
+  "S4_M5_MANIFEST": "8/8 PASS",
+  "ARCHITECTURE_CHANGED": false,
+  "ARCHITECT_REVIEW_REQUIRED": false,
+  "READY_FOR_S4_M6_A3_R2": true
+}

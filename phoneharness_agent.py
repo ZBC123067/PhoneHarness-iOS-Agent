@@ -177,24 +177,50 @@ class MCPExecutionBoundaryError(RuntimeError):
     """An action-capable MCP request bypassed the Executor-owned port."""
 
 
-class _MCPExecutionAuthority:
-    """Unforgeable in-process authority held only by an Executor port."""
+def _executor_authority_types() -> tuple[type, type, Callable[[Any, Any], Any]]:
+    """Create the sealed executor capability primitives.
 
-
-class _ExecutorMCPPort:
-    """Narrow action transport created privately by :class:`MCPClient`.
-
-    The port owns no planning, risk, verification, or observation logic. It
-    exists solely to prevent a general ``MCPClient.call_tool`` from becoming an
-    action API reachable by unrelated runtime modules.
+    The construction seal remains inside this closure.  An execution port is
+    issued only after ``MCPClient`` accepts one bounded owner, and every use is
+    checked against that same owner identity.
     """
 
-    def __init__(self, client: "MCPClient", authority: _MCPExecutionAuthority) -> None:
-        self._client = client
-        self._authority = authority
+    construction_seal = object()
 
-    def call_tool(self, name: str, arguments: dict[str, Any]) -> dict[str, Any]:
-        return self._client._execute_tool(self._authority, name, arguments)
+    class MCPExecutionAuthority:
+        __slots__ = ("client", "owner")
+
+        def __init__(self, client: Any, owner: Any, seal: object) -> None:
+            if seal is not construction_seal:
+                raise MCPExecutionBoundaryError("execution authority is issued only by MCPClient")
+            self.client = client
+            self.owner = owner
+
+    class ExecutorMCPPort:
+        __slots__ = ("_client", "_authority", "_owner")
+
+        def __init__(self, client: Any, authority: Any, owner: Any, seal: object) -> None:
+            if seal is not construction_seal or not isinstance(authority, MCPExecutionAuthority):
+                raise MCPExecutionBoundaryError("executor port is issued only by MCPClient")
+            if authority.client is not client or authority.owner is not owner:
+                raise MCPExecutionBoundaryError("executor port authority does not match its owner")
+            self._client = client
+            self._authority = authority
+            self._owner = owner
+
+        def call_tool(self, owner: Any, name: str, arguments: dict[str, Any]) -> dict[str, Any]:
+            if owner is not self._owner:
+                raise MCPExecutionBoundaryError("executor port use requires its bounded owner")
+            return self._client._execute_tool(self._authority, owner, name, arguments)
+
+    def issue(client: Any, owner: Any) -> ExecutorMCPPort:
+        authority = MCPExecutionAuthority(client, owner, construction_seal)
+        return ExecutorMCPPort(client, authority, owner, construction_seal)
+
+    return MCPExecutionAuthority, ExecutorMCPPort, issue
+
+
+_MCPExecutionAuthority, _ExecutorMCPPort, _issue_executor_port = _executor_authority_types()
 
 
 @dataclass(frozen=True)
@@ -1762,8 +1788,30 @@ class SemanticActionBindingError(RuntimeError):
     """A private, short-lived semantic control binding is unavailable or unsafe."""
 
 
+class InstalledAppLaunchBindingErrorCode(Enum):
+    """Bounded machine-readable installed-app binding failure identity."""
+
+    BINDING_UNAVAILABLE = "BINDING_UNAVAILABLE"
+    BINDING_STEP_MISMATCH = "BINDING_STEP_MISMATCH"
+    BINDING_ARGUMENTS_INVALID = "BINDING_ARGUMENTS_INVALID"
+    BINDING_CAPACITY_REACHED = "BINDING_CAPACITY_REACHED"
+    CONTEXT_REFERENCE_INVALID = "CONTEXT_REFERENCE_INVALID"
+    CONTEXT_SCOPE_MISMATCH = "CONTEXT_SCOPE_MISMATCH"
+    GOVERNED_BINDING_REQUIRED = "GOVERNED_BINDING_REQUIRED"
+
+
 class InstalledAppLaunchBindingError(RuntimeError):
     """A one-time TEST-49 installed-app binding was invalid or unavailable."""
+
+    def __init__(
+        self,
+        *args: Any,
+        code: InstalledAppLaunchBindingErrorCode | None = None,
+    ) -> None:
+        if code is not None and not isinstance(code, InstalledAppLaunchBindingErrorCode):
+            raise TypeError("installed-app binding error code must use InstalledAppLaunchBindingErrorCode")
+        super().__init__(*args)
+        self.code = code
 
 
 class PublicDestinationBindingError(RuntimeError):
@@ -6104,6 +6152,96 @@ class TargetDisambiguationResult:
         }
 
 
+@dataclass(frozen=True)
+class TargetClarificationCandidate:
+    """One opaque candidate within a target clarification surface.
+
+    ``candidate_ref`` is opaque and stable only within its parent resolution.
+    ``bundle_id`` is exposed as the current inventory's sole stable
+    distinguishing field; it is a display description, never an authorization
+    token and never an injectable identity. ``name`` and ``app_type`` are the
+    current three-field payload's remaining display metadata and are omitted
+    when absent.
+    """
+
+    candidate_ref: str
+    bundle_id: str
+    name: str
+    app_type: str
+
+    CANDIDATE_REF_PATTERN = re.compile(r"^app\.clarify\.[0-9a-f]{32}$")
+
+    def validate(self) -> None:
+        if not self.CANDIDATE_REF_PATTERN.fullmatch(self.candidate_ref):
+            raise InstalledAppLaunchBindingError("target clarification candidate reference is invalid")
+        if not AppTargetResolver.APP_ID_PATTERN.fullmatch(self.bundle_id):
+            raise InstalledAppLaunchBindingError("target clarification candidate bundle identifier is invalid")
+        if not isinstance(self.name, str) or not isinstance(self.app_type, str):
+            raise InstalledAppLaunchBindingError("target clarification candidate display metadata is invalid")
+
+    def display(self) -> dict[str, str]:
+        return {
+            "candidate_ref": self.candidate_ref,
+            "bundle_id": self.bundle_id,
+            "name": self.name,
+            "type": self.app_type,
+        }
+
+
+@dataclass(frozen=True)
+class TargetClarificationRequest:
+    """Typed, one-time, user-facing clarification surface for one ambiguous target identity.
+
+    This is a discovery surface, never an authorization grant. It exposes only
+    the normalized target phrase, ambiguity reason, candidate count, and minimal
+    candidate display descriptions; it never dumps the full installed-app
+    inventory and never selects a candidate. A valid user selection is later
+    re-validated against a fresh inventory before any binding exists.
+    """
+
+    resolution_id: str
+    target_phrase: str
+    reason: str
+    candidate_count: int
+    expires_at: int
+    candidates: tuple[TargetClarificationCandidate, ...]
+
+    RESOLUTION_ID_PATTERN = re.compile(r"^app\.resolution\.[0-9a-f]{32}$")
+
+    @property
+    def candidate_refs(self) -> tuple[str, ...]:
+        return tuple(candidate.candidate_ref for candidate in self.candidates)
+
+    def validate_public_schema(self) -> None:
+        if not self.RESOLUTION_ID_PATTERN.fullmatch(self.resolution_id):
+            raise InstalledAppLaunchBindingError("target clarification resolution identifier is invalid")
+        if not isinstance(self.target_phrase, str) or not self.target_phrase or len(self.target_phrase) > 128:
+            raise InstalledAppLaunchBindingError("target clarification phrase is invalid")
+        if not isinstance(self.reason, str) or not self.reason:
+            raise InstalledAppLaunchBindingError("target clarification reason is invalid")
+        if self.candidate_count < 2 or self.candidate_count != len(self.candidates):
+            raise InstalledAppLaunchBindingError("target clarification candidate count is invalid")
+        if not isinstance(self.expires_at, int) or self.expires_at < 0:
+            raise InstalledAppLaunchBindingError("target clarification expiry is invalid")
+        seen: set[str] = set()
+        for candidate in self.candidates:
+            candidate.validate()
+            if candidate.candidate_ref in seen:
+                raise InstalledAppLaunchBindingError("target clarification candidate references must be unique")
+            seen.add(candidate.candidate_ref)
+
+    def public_summary(self) -> dict[str, Any]:
+        return {
+            "status": "TARGET_CLARIFICATION_REQUIRED",
+            "reason_code": self.reason,
+            "target_phrase": self.target_phrase,
+            "candidate_count": self.candidate_count,
+            "resolution_id": self.resolution_id,
+            "expires_at": self.expires_at,
+            "candidates": [candidate.display() for candidate in self.candidates],
+        }
+
+
 class TargetDisambiguationPolicy:
     """Apply deterministic, source-gated installed-app target resolution.
 
@@ -6255,6 +6393,9 @@ class InstalledAppLaunchBindingStore:
     DEFAULT_TTL_SECONDS = 30
     APP_ID_PATTERN = AppTargetResolver.APP_ID_PATTERN
     CONTEXT_SCOPE_PATTERN = re.compile(r"^(task|workspace)\.[a-z0-9][a-z0-9_.-]{2,127}$")
+    RESOLUTION_ID_PATTERN = TargetClarificationRequest.RESOLUTION_ID_PATTERN
+    CANDIDATE_REF_PATTERN = TargetClarificationCandidate.CANDIDATE_REF_PATTERN
+    TYPE_KEYS = ("type", "applicationType", "app_type")
 
     def __init__(
         self,
@@ -6276,6 +6417,7 @@ class InstalledAppLaunchBindingStore:
         self._target_disambiguation = target_disambiguation_policy or TargetDisambiguationPolicy(self._target_resolver)
         self._private_bindings: dict[str, dict[str, Any]] = {}
         self._private_context_targets: dict[str, dict[str, Any]] = {}
+        self._private_clarifications: dict[str, dict[str, Any]] = {}
         self._lock = threading.RLock()
 
     def bind_unique(
@@ -6363,7 +6505,10 @@ class InstalledAppLaunchBindingStore:
         """
 
         if not isinstance(context_reference, str) or not BoundInstalledAppContextReference.REFERENCE_PATTERN.fullmatch(context_reference):
-            raise InstalledAppLaunchBindingError("installed-app context reference is invalid")
+            raise InstalledAppLaunchBindingError(
+                "installed-app context reference is invalid",
+                code=InstalledAppLaunchBindingErrorCode.CONTEXT_REFERENCE_INVALID,
+            )
         self._scope(task_scope, "task_scope")
         self._scope(workspace_scope, "workspace_scope")
         current_time = int(time.time()) if now is None else int(now)
@@ -6373,9 +6518,15 @@ class InstalledAppLaunchBindingStore:
             if entry is None:
                 raise InstalledAppLaunchBindingError("installed-app context reference is unavailable or expired")
             if not hmac.compare_digest(str(entry.get("task_scope") or ""), task_scope):
-                raise InstalledAppLaunchBindingError("installed-app context reference task scope does not match")
+                raise InstalledAppLaunchBindingError(
+                    "installed-app context reference task scope does not match",
+                    code=InstalledAppLaunchBindingErrorCode.CONTEXT_SCOPE_MISMATCH,
+                )
             if not hmac.compare_digest(str(entry.get("workspace_scope") or ""), workspace_scope):
-                raise InstalledAppLaunchBindingError("installed-app context reference workspace scope does not match")
+                raise InstalledAppLaunchBindingError(
+                    "installed-app context reference workspace scope does not match",
+                    code=InstalledAppLaunchBindingErrorCode.CONTEXT_SCOPE_MISMATCH,
+                )
             bundle_id = entry.get("bundle_id")
             if not isinstance(bundle_id, str) or not self.APP_ID_PATTERN.fullmatch(bundle_id):
                 raise InstalledAppLaunchBindingError("installed-app context reference contains an invalid private application identifier")
@@ -6384,6 +6535,183 @@ class InstalledAppLaunchBindingStore:
             # dispatch binding so TEST-46 recovery must re-observe and re-plan.
             del self._private_context_targets[context_reference]
             return self._new_binding(bundle_id, int(entry["expires_at"]))
+
+    def clarify(
+        self,
+        inventory_payload: dict[str, Any],
+        requested_app: str,
+        *,
+        now: int | None = None,
+    ) -> TargetClarificationRequest:
+        """Create a bounded clarification surface for an ambiguous target identity.
+
+        Only a genuine ambiguity (multiple candidates with no trusted narrowing
+        path) produces a surface. Zero candidates fail closed as
+        ``TARGET_NOT_FOUND`` and a single candidate stays ``UNIQUE_EXACT_MATCH``
+        (no clarification), preserving the existing behavior. The surface is a
+        discovery input only; it never authorizes and never selects.
+        """
+
+        phrase = self._request(requested_app)
+        resolution = self._target_disambiguation.resolve(inventory_payload, requested_app)
+        if resolution.candidate_count < 2:
+            raise InstalledAppLaunchBindingError(
+                "installed app clarification blocked: " + resolution.reason_code
+            )
+        candidates = self._clarification_candidates(inventory_payload, requested_app)
+        if len(candidates) < 2:
+            # The disambiguation counted multiple candidates but a safe display
+            # surface could not be reconstructed; stay fail closed.
+            raise InstalledAppLaunchBindingError(
+                "installed app clarification blocked: TARGET_CLARIFICATION_AMBIGUOUS"
+            )
+        current_time = int(time.time()) if now is None else int(now)
+        with self._lock:
+            self._purge_expired(current_time)
+            self._require_capacity()
+            resolution_id = "app.resolution." + uuid4().hex
+            private_candidates: dict[str, dict[str, str]] = {}
+            candidate_objects: list[TargetClarificationCandidate] = []
+            bundle_ids: list[str] = []
+            for record in candidates:
+                candidate_ref = "app.clarify." + uuid4().hex
+                private_candidates[candidate_ref] = {
+                    "bundle_id": record["bundle_id"],
+                    "name": record["name"],
+                    "type": record["type"],
+                }
+                candidate_objects.append(
+                    TargetClarificationCandidate(
+                        candidate_ref, record["bundle_id"], record["name"], record["type"]
+                    )
+                )
+                bundle_ids.append(record["bundle_id"])
+            fingerprint = self._clarification_fingerprint(bundle_ids)
+            expires_at = current_time + self.ttl_seconds
+            self._private_clarifications[resolution_id] = {
+                "target_phrase": phrase,
+                "candidates": private_candidates,
+                "fingerprint": fingerprint,
+                "expires_at": expires_at,
+                "consumed": False,
+            }
+            request = TargetClarificationRequest(
+                resolution_id,
+                phrase,
+                resolution.reason_code,
+                len(candidate_objects),
+                expires_at,
+                tuple(candidate_objects),
+            )
+            request.validate_public_schema()
+            return request
+
+    def resolve_clarification(
+        self,
+        resolution_id: str,
+        selected_candidate_ref: str,
+        inventory_payload: dict[str, Any],
+        *,
+        now: int | None = None,
+    ) -> BoundInstalledApp:
+        """Lower one explicit user selection to a unique binding after fresh validation.
+
+        The selected reference must still identify the same bundle identifier in
+        the freshly read inventory, and the candidate set the user chose among
+        must be reproduced exactly. This is discovery resolution, not
+        authorization; the returned binding must still pass the full
+        Planner -> Risk -> Executor -> Verifier -> Ledger path.
+        """
+
+        if not isinstance(resolution_id, str) or not self.RESOLUTION_ID_PATTERN.fullmatch(resolution_id):
+            raise InstalledAppLaunchBindingError(
+                "installed app clarification blocked: TARGET_CLARIFICATION_INVALID"
+            )
+        if not isinstance(selected_candidate_ref, str) or not self.CANDIDATE_REF_PATTERN.fullmatch(selected_candidate_ref):
+            raise InstalledAppLaunchBindingError(
+                "installed app clarification blocked: TARGET_CLARIFICATION_INVALID"
+            )
+        current_time = int(time.time()) if now is None else int(now)
+        with self._lock:
+            entry = self._private_clarifications.get(resolution_id)
+            if entry is None:
+                raise InstalledAppLaunchBindingError(
+                    "installed app clarification blocked: TARGET_CLARIFICATION_INVALID"
+                )
+            if int(entry.get("expires_at") or 0) <= current_time:
+                raise InstalledAppLaunchBindingError(
+                    "installed app clarification blocked: TARGET_CLARIFICATION_EXPIRED"
+                )
+            if entry.get("consumed"):
+                raise InstalledAppLaunchBindingError(
+                    "installed app clarification blocked: TARGET_CLARIFICATION_INVALID"
+                )
+            selected = entry["candidates"].get(selected_candidate_ref)
+            if not isinstance(selected, dict):
+                raise InstalledAppLaunchBindingError(
+                    "installed app clarification blocked: TARGET_CLARIFICATION_INVALID"
+                )
+            stored_bundle_id = selected.get("bundle_id")
+            if not isinstance(stored_bundle_id, str) or not self.APP_ID_PATTERN.fullmatch(stored_bundle_id):
+                raise InstalledAppLaunchBindingError(
+                    "installed app clarification blocked: TARGET_CLARIFICATION_INVALID"
+                )
+            fresh_ids = frozenset(
+                self._target_resolver.resolve_candidates(inventory_payload, str(entry["target_phrase"]))
+            )
+            if stored_bundle_id not in fresh_ids:
+                raise InstalledAppLaunchBindingError(
+                    "installed app clarification blocked: TARGET_CLARIFICATION_STALE"
+                )
+            if not hmac.compare_digest(self._clarification_fingerprint(fresh_ids), str(entry["fingerprint"])):
+                raise InstalledAppLaunchBindingError(
+                    "installed app clarification blocked: TARGET_CLARIFICATION_CANDIDATE_MISMATCH"
+                )
+            # Single use: consume before issuing the one-time dispatch binding.
+            entry["consumed"] = True
+            return self._new_binding(stored_bundle_id, current_time + self.ttl_seconds)
+
+    def _clarification_candidates(self, inventory_payload: dict[str, Any], requested_app: str) -> list[dict[str, str]]:
+        """Recover the minimal, bounded display records for the ambiguous candidate set."""
+
+        candidate_ids = frozenset(self._target_resolver.resolve_candidates(inventory_payload, requested_app))
+        if not isinstance(inventory_payload, dict):
+            return []
+        raw_apps = next(
+            (inventory_payload.get(key) for key in self._target_resolver.APP_LIST_KEYS if isinstance(inventory_payload.get(key), list)),
+            None,
+        )
+        if not isinstance(raw_apps, list):
+            return []
+        records: list[dict[str, str]] = []
+        for app in raw_apps:
+            if not isinstance(app, dict):
+                continue
+            bundle_id = TargetDisambiguationPolicy._bundle_id(app)
+            if bundle_id not in candidate_ids:
+                continue
+            name = next(
+                (app.get(key) for key in self._target_resolver.NAME_KEYS if isinstance(app.get(key), str)),
+                "",
+            )
+            app_type = next(
+                (app.get(key) for key in self.TYPE_KEYS if isinstance(app.get(key), str)),
+                "",
+            )
+            records.append({"bundle_id": bundle_id, "name": name, "type": app_type})
+        records.sort(key=lambda record: record["bundle_id"])
+        return records
+
+    @staticmethod
+    def _clarification_fingerprint(bundle_ids: Iterable[str]) -> str:
+        """Hash the canonical candidate identifiers that a user chose among.
+
+        The fingerprint covers bundle identifiers only (the stable identity),
+        not localized display names or types. A name/type-only change does not
+        invalidate a selection because the selection identity is the bundle id.
+        """
+
+        return hashlib.sha256("\n".join(sorted(bundle_ids)).encode("utf-8")).hexdigest()
 
     def validate_request(self, requested_app: Any) -> None:
         """Reject malformed target requests before reading a private inventory."""
@@ -6400,7 +6728,10 @@ class InstalledAppLaunchBindingStore:
             if entry is None or entry.get("claimed"):
                 raise InstalledAppLaunchBindingError("installed-app binding is unavailable, expired, or already claimed")
             if tool != "launch_app" or step_id != "launch-bound-installed-app":
-                raise InstalledAppLaunchBindingError("installed-app binding does not authorize this step")
+                raise InstalledAppLaunchBindingError(
+                    "installed-app binding does not authorize this step",
+                    code=InstalledAppLaunchBindingErrorCode.BINDING_STEP_MISMATCH,
+                )
             bundle_id = entry.get("bundle_id")
             if not isinstance(bundle_id, str) or not self.APP_ID_PATTERN.fullmatch(bundle_id):
                 raise InstalledAppLaunchBindingError("installed-app binding contains an invalid private application identifier")
@@ -6443,8 +6774,16 @@ class InstalledAppLaunchBindingStore:
         return binding
 
     def _require_capacity(self) -> None:
-        if len(self._private_bindings) + len(self._private_context_targets) >= self.capacity:
-            raise InstalledAppLaunchBindingError("installed-app binding capacity reached")
+        if (
+            len(self._private_bindings)
+            + len(self._private_context_targets)
+            + len(self._private_clarifications)
+            >= self.capacity
+        ):
+            raise InstalledAppLaunchBindingError(
+                "installed-app binding capacity reached",
+                code=InstalledAppLaunchBindingErrorCode.BINDING_CAPACITY_REACHED,
+            )
 
     @classmethod
     def _scope(cls, value: Any, field: str) -> str:
@@ -6469,6 +6808,10 @@ class InstalledAppLaunchBindingStore:
             item for item, entry in self._private_context_targets.items() if int(entry.get("expires_at") or 0) <= current_time
         ]:
             del self._private_context_targets[reference]
+        for resolution_id in [
+            item for item, entry in self._private_clarifications.items() if int(entry.get("expires_at") or 0) <= current_time
+        ]:
+            del self._private_clarifications[resolution_id]
 
 
 @dataclass(frozen=True)
@@ -6506,6 +6849,15 @@ class BoundPublicDestination:
 
     UUID_PATTERN = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
 
+    def schema(self) -> dict[str, Any]:
+        return {
+            "binding_version": self.binding_version,
+            "binding_id": self.binding_id,
+            "reference_type": self.reference_type,
+            "candidate_count": self.candidate_count,
+            "expires_at": self.expires_at,
+        }
+
     def validate_public_schema(self) -> None:
         if self.binding_version != PUBLIC_DESTINATION_CONTEXT_MAPS_VERSION:
             raise PublicDestinationBindingError("public-destination binding version is unsupported")
@@ -6523,6 +6875,12 @@ class BoundPublicDestination:
             "destination_length_bucket": "redacted",
             "destination_class": "public_destination",
         }
+
+    def registry_snapshot(self) -> Snapshot:
+        """Expose one generic capability token without destination content."""
+
+        self.validate_public_schema()
+        return Snapshot("", "", 1, "runtime_binding", ({"text": "destination", "clickable": False},))
 
 
 class PublicDestinationBindingStore:
@@ -6688,6 +7046,58 @@ class PublicDestinationBindingStore:
             entry["consumed"] = True
             return MapLinkAdapter(str(entry["destination"]))
 
+    def prepare(self, binding_id: str, *, task_id: str, context_id: str, now: int | None = None) -> None:
+        """Bind one destination to the canonical Coordinator execution scope."""
+
+        normalized_task = _planner_metadata(task_id, "public destination task_id")
+        normalized_context = _planner_metadata(context_id, "public destination context_id")
+        current_time = int(time.time()) if now is None else int(now)
+        with self._lock:
+            self._purge_expired(current_time)
+            entry = self._bindings.get(str(binding_id))
+            if entry is None or entry.get("consumed") is True:
+                raise PublicDestinationBindingError("destination binding is unavailable, expired, or consumed")
+            if entry.get("prepared_task_id") is not None:
+                raise PublicDestinationBindingError("destination binding is already prepared")
+            entry["prepared_task_id"] = normalized_task
+            entry["prepared_context_id"] = normalized_context
+
+    def claim(
+        self,
+        binding_id: str,
+        *,
+        tool: str,
+        step_id: str,
+        task_id: str,
+        context_id: str,
+        now: int | None = None,
+    ) -> dict[str, Any]:
+        """Materialize the sole private Maps URL immediately before dispatch."""
+
+        current_time = int(time.time()) if now is None else int(now)
+        with self._lock:
+            self._purge_expired(current_time)
+            entry = self._bindings.get(str(binding_id))
+            if entry is None or entry.get("consumed") is True:
+                raise PublicDestinationBindingError("destination binding is unavailable, expired, or consumed")
+            if tool != "open_url" or step_id != "open-bound-public-destination":
+                raise PublicDestinationBindingError("destination binding does not authorize this step")
+            if (
+                not hmac.compare_digest(str(entry.get("prepared_task_id") or ""), str(task_id))
+                or not hmac.compare_digest(str(entry.get("prepared_context_id") or ""), str(context_id))
+            ):
+                raise PublicDestinationBindingError("destination binding execution scope does not match")
+            adapter = MapLinkAdapter(str(entry["destination"]))
+            entry["consumed"] = True
+            return {"url": adapter.map_url()}
+
+    def is_available(self, binding_id: str, *, now: int | None = None) -> bool:
+        current_time = int(time.time()) if now is None else int(now)
+        with self._lock:
+            self._purge_expired(current_time)
+            entry = self._bindings.get(str(binding_id))
+            return bool(entry and entry.get("consumed") is not True)
+
     def was_consumed(self, binding_id: str, *, now: int | None = None) -> bool:
         current_time = int(time.time()) if now is None else int(now)
         with self._lock:
@@ -6749,8 +7159,14 @@ class MCPClient:
     def __init__(self, url: str = DEFAULT_MCP_URL, timeout: float = 20.0) -> None:
         self.url = url
         self.timeout = timeout
-        self._execution_authority = _MCPExecutionAuthority()
-        self._execution_port = _ExecutorMCPPort(self, self._execution_authority)
+        self._execution_owner: Any | None = None
+        self._execution_authority: _MCPExecutionAuthority | None = None
+        self._execution_port_instance: _ExecutorMCPPort | None = None
+        self._execution_owner_lock = threading.Lock()
+        self._payload_frame = threading.local()
+        self.__read_only_payload_frame = object()
+        self.__visual_analysis_payload_frame = object()
+        self.__visual_grant_payload_frame = object()
         self._semantic_search_observation_version = 0
         self._semantic_search_observation_lock = threading.Lock()
 
@@ -6787,24 +7203,89 @@ class MCPClient:
             raise MCPExecutionBoundaryError(
                 "%s is action-capable and may be called only through PlanExecutor" % name
             )
-        return self._call_tool_payload(name, arguments)
+        return self._dispatch_tool_payload(self.__read_only_payload_frame, name, arguments)
 
-    def _executor_port(self) -> _ExecutorMCPPort:
-        """Return the private action port used only by :class:`PlanExecutor`."""
+    def _executor_port(self, owner: Any) -> _ExecutorMCPPort:
+        """Issue exactly one action port to a recognized governed owner."""
 
-        return self._execution_port
+        approved = tuple(
+            candidate
+            for name in (
+                "GovernedCapabilityBindingRuntime",
+                "NativeCapabilityBridge",
+                "GovernedInputTextRuntime",
+            )
+            if isinstance((candidate := globals().get(name)), type)
+        )
+        if type(owner) not in approved or getattr(owner, "_client", None) is not self:
+            raise MCPExecutionBoundaryError("executor port requires the canonical governed runtime owner")
+        with self._execution_owner_lock:
+            if self._execution_owner is not None:
+                raise MCPExecutionBoundaryError("executor port has already been issued for this MCPClient")
+            port = _issue_executor_port(self, owner)
+            self._execution_owner = owner
+            self._execution_authority = port._authority
+            self._execution_port_instance = port
+            return port
 
     def _execute_tool(
         self,
         authority: _MCPExecutionAuthority,
+        owner: Any,
         name: str,
         arguments: dict[str, Any],
     ) -> dict[str, Any]:
-        if authority is not self._execution_authority:
+        if (
+            authority is not self._execution_authority
+            or owner is not self._execution_owner
+            or authority.client is not self
+            or authority.owner is not owner
+        ):
             raise MCPExecutionBoundaryError("MCP action requires Executor-owned authority")
-        return self._call_tool_payload(name, arguments)
+        return self._dispatch_tool_payload(authority, name, arguments, execution_owner=owner)
+
+    def _dispatch_tool_payload(
+        self,
+        frame: object,
+        name: str,
+        arguments: dict[str, Any],
+        *,
+        execution_owner: Any | None = None,
+    ) -> dict[str, Any]:
+        if getattr(self._payload_frame, "active", None) is not None:
+            raise MCPExecutionBoundaryError("nested MCP payload dispatch is not permitted")
+        self._payload_frame.active = (frame, execution_owner)
+        try:
+            return self._call_tool_payload(name, arguments)
+        finally:
+            del self._payload_frame.active
 
     def _call_tool_payload(self, name: str, arguments: dict[str, Any]) -> dict[str, Any]:
+        active = getattr(self._payload_frame, "active", None)
+        frame, execution_owner = active if isinstance(active, tuple) and len(active) == 2 else (None, None)
+        if frame is self.__read_only_payload_frame:
+            allowed = name in self.READ_ONLY_TOOLS
+        elif (
+            frame is self._execution_authority
+            and execution_owner is self._execution_owner
+            and isinstance(frame, _MCPExecutionAuthority)
+            and frame.client is self
+            and frame.owner is execution_owner
+        ):
+            allowed = True
+        elif frame is self.__visual_analysis_payload_frame:
+            allowed = (
+                name == "analyze_visual_session"
+                and set(arguments) == {"session_id", "recognition_mode"}
+                and re.fullmatch(r"visualsession\.[0-9a-f]{32}", str(arguments.get("session_id") or "")) is not None
+                and arguments.get("recognition_mode") == "accurate"
+            )
+        elif frame is self.__visual_grant_payload_frame:
+            allowed = name == "create_visual_session" and arguments == {}
+        else:
+            allowed = False
+        if not allowed:
+            raise MCPExecutionBoundaryError("MCP payload requires an authorized execution frame")
         result = self._rpc("tools/call", {"name": name, "arguments": arguments})
         if result.get("isError"):
             raise MCPCallError(self._content_text(result) or "%s returned an error" % name)
@@ -6835,7 +7316,8 @@ class MCPClient:
         if re.fullmatch(r"visualsession\.[0-9a-f]{32}", normalized) is None:
             raise LocalVisualAnalysisError("local visual session identifier is invalid")
         try:
-            return self._call_tool_payload(
+            return self._dispatch_tool_payload(
+                self.__visual_analysis_payload_frame,
                 "analyze_visual_session",
                 {"session_id": normalized, "recognition_mode": "accurate"},
             )
@@ -6850,7 +7332,11 @@ class MCPClient:
         """
 
         try:
-            payload = self._call_tool_payload("create_visual_session", {})
+            payload = self._dispatch_tool_payload(
+                self.__visual_grant_payload_frame,
+                "create_visual_session",
+                {},
+            )
         except MCPCallError as error:
             raise LocalVisualAnalysisError("local visual authorization unavailable") from error
         return DeviceVisualSessionGrant.from_payload(payload)
@@ -12762,6 +13248,35 @@ class CapabilityEvidence:
         )
 
 
+class CapabilitySideEffectClass(str, Enum):
+    """Static effect classification; it grants no execution authority."""
+
+    UNSPECIFIED = "UNSPECIFIED"
+    READ_ONLY = "READ_ONLY"
+    DEVICE_STATE_MUTATION = "DEVICE_STATE_MUTATION"
+
+
+class CapabilityAuthorizationPolicy(str, Enum):
+    """Descriptive authorization policy owned by the existing RiskController."""
+
+    RISK_DECIDES = "RISK_DECIDES"
+
+
+class CapabilityTargetRequirement(str, Enum):
+    NONE = "NONE"
+    FRESH_TARGET_REQUIRED = "FRESH_TARGET_REQUIRED"
+
+
+class CapabilityReplayPolicy(str, Enum):
+    NOT_APPLICABLE = "NOT_APPLICABLE"
+    SINGLE_USE_NO_REPLAY = "SINGLE_USE_NO_REPLAY"
+
+
+class CapabilityProviderSelectionMode(str, Enum):
+    REGISTRY_ADVISORY_ONLY = "REGISTRY_ADVISORY_ONLY"
+    REGISTERED_METHOD_ONLY = "REGISTERED_METHOD_ONLY"
+
+
 @dataclass(frozen=True)
 class CapabilityDefinition:
     """A reusable capability contract, not a plan, tool call, or workflow.
@@ -12785,6 +13300,48 @@ class CapabilityDefinition:
     dependencies: tuple[str, ...]
     platform_support: tuple[str, ...]
     evidence: CapabilityEvidence = CapabilityEvidence()
+    schema_version: str = "1.0"
+    side_effect_class: CapabilitySideEffectClass = CapabilitySideEffectClass.UNSPECIFIED
+    risk_class: str | None = None
+    risk_evaluation_required: bool = False
+    explicit_authorization_policy: CapabilityAuthorizationPolicy = CapabilityAuthorizationPolicy.RISK_DECIDES
+    binding_required: bool = False
+    target_requirement: CapabilityTargetRequirement = CapabilityTargetRequirement.NONE
+    target_binding_kind: str = "none"
+    verifier_id: str | None = None
+    post_dispatch_observation_required: bool = False
+    replay_policy: CapabilityReplayPolicy = CapabilityReplayPolicy.NOT_APPLICABLE
+    provider_selection_mode: CapabilityProviderSelectionMode = CapabilityProviderSelectionMode.REGISTRY_ADVISORY_ONLY
+
+    def __post_init__(self) -> None:
+        # Existing definitions inherit their established risk/verifier labels;
+        # only explicitly migrated capabilities add stronger static metadata.
+        if self.risk_class is None:
+            object.__setattr__(self, "risk_class", self.risk_level)
+        if self.verifier_id is None:
+            object.__setattr__(self, "verifier_id", self.verifier)
+
+    def static_metadata(self) -> dict[str, Any]:
+        """Return the immutable, descriptive M5 capability contract."""
+
+        return {
+            "schema_version": self.schema_version,
+            "capability_id": self.capability_id,
+            "version": self.version,
+            "required_tools": sorted(self.required_tools),
+            "required_permissions": list(self.required_permissions),
+            "side_effect_class": self.side_effect_class.value,
+            "risk_class": self.risk_class,
+            "risk_evaluation_required": self.risk_evaluation_required,
+            "explicit_authorization_policy": self.explicit_authorization_policy.value,
+            "binding_required": self.binding_required,
+            "target_requirement": self.target_requirement.value,
+            "target_binding_kind": self.target_binding_kind,
+            "verifier_id": self.verifier_id,
+            "post_dispatch_observation_required": self.post_dispatch_observation_required,
+            "replay_policy": self.replay_policy.value,
+            "provider_selection_mode": self.provider_selection_mode.value,
+        }
 
     def contract(self) -> dict[str, Any]:
         """Return an auditable metadata-only capability definition."""
@@ -12804,6 +13361,7 @@ class CapabilityDefinition:
             "dependencies": list(self.dependencies),
             "platform_support": list(self.platform_support),
             "evidence": self.evidence.summary(),
+            **self.static_metadata(),
         }
 
     def with_evidence(self, evidence: CapabilityEvidence, *, lifecycle: str | None = None) -> "CapabilityDefinition":
@@ -12824,7 +13382,77 @@ class CapabilityDefinition:
             dependencies=self.dependencies,
             platform_support=self.platform_support,
             evidence=evidence,
+            schema_version=self.schema_version,
+            side_effect_class=self.side_effect_class,
+            risk_class=self.risk_class,
+            risk_evaluation_required=self.risk_evaluation_required,
+            explicit_authorization_policy=self.explicit_authorization_policy,
+            binding_required=self.binding_required,
+            target_requirement=self.target_requirement,
+            target_binding_kind=self.target_binding_kind,
+            verifier_id=self.verifier_id,
+            post_dispatch_observation_required=self.post_dispatch_observation_required,
+            replay_policy=self.replay_policy,
+            provider_selection_mode=self.provider_selection_mode,
         )
+
+
+INSTALLED_APP_LAUNCH_CAPABILITY_DEFINITION = CapabilityDefinition(
+    capability_id="capability.apps.launch_installed.v1",
+    name="installed_app_launch",
+    description="Launch one uniquely resolved installed app through a one-time runtime binding.",
+    version="1.0.0",
+    source_type="computer_use",
+    lifecycle="AVAILABLE",
+    required_tools=frozenset({"launch_app"}),
+    required_permissions=("mcp.foreground_interaction",),
+    risk_level="interaction",
+    preconditions=("unique_installed_app_match",),
+    verifier="frontmost_bound_app",
+    dependencies=(),
+    platform_support=("macos_host", "ios_mcp"),
+    schema_version="1.0",
+    side_effect_class=CapabilitySideEffectClass.DEVICE_STATE_MUTATION,
+    risk_class="interaction",
+    risk_evaluation_required=True,
+    explicit_authorization_policy=CapabilityAuthorizationPolicy.RISK_DECIDES,
+    binding_required=True,
+    target_requirement=CapabilityTargetRequirement.FRESH_TARGET_REQUIRED,
+    target_binding_kind="OPAQUE_INSTALLED_APP",
+    verifier_id="frontmost_bound_app",
+    post_dispatch_observation_required=True,
+    replay_policy=CapabilityReplayPolicy.SINGLE_USE_NO_REPLAY,
+    provider_selection_mode=CapabilityProviderSelectionMode.REGISTERED_METHOD_ONLY,
+)
+
+
+MAPS_PUBLIC_DESTINATION_CAPABILITY_DEFINITION = CapabilityDefinition(
+    capability_id="capability.maps.open_native_link.v1",
+    name="maps_public_destination_handoff",
+    description="Hand one fresh public destination to Apple Maps through a one-time opaque binding.",
+    version="1.0.0",
+    source_type="native_capability_link",
+    lifecycle="AVAILABLE",
+    required_tools=frozenset({"open_url"}),
+    required_permissions=("mcp.foreground_interaction",),
+    risk_level="interaction",
+    preconditions=("nonempty_public_destination",),
+    verifier="frontmost_app_is",
+    dependencies=(),
+    platform_support=("macos_host", "ios_mcp"),
+    schema_version="1.0",
+    side_effect_class=CapabilitySideEffectClass.DEVICE_STATE_MUTATION,
+    risk_class="interaction",
+    risk_evaluation_required=True,
+    explicit_authorization_policy=CapabilityAuthorizationPolicy.RISK_DECIDES,
+    binding_required=True,
+    target_requirement=CapabilityTargetRequirement.FRESH_TARGET_REQUIRED,
+    target_binding_kind="OPAQUE_PUBLIC_DESTINATION",
+    verifier_id="frontmost_app_is",
+    post_dispatch_observation_required=True,
+    replay_policy=CapabilityReplayPolicy.SINGLE_USE_NO_REPLAY,
+    provider_selection_mode=CapabilityProviderSelectionMode.REGISTERED_METHOD_ONLY,
+)
 
 
 @dataclass(frozen=True)
@@ -12895,7 +13523,11 @@ class CapabilityCatalog:
     RISK_LEVELS = SkillRegistry.RISK_LEVELS
     CAPABILITY_ID_PATTERN = re.compile(r"^capability\.[a-z][a-z0-9_.-]{2,127}$")
     SEMVER_PATTERN = SkillRegistry.SEMVER_PATTERN
+    SCHEMA_VERSION_PATTERN = re.compile(r"^\d+\.\d+$")
     METADATA_LABEL_PATTERN = re.compile(r"^[a-z][a-z0-9_.-]{2,127}$")
+    TARGET_BINDING_KINDS = frozenset(
+        {"none", "OPAQUE_INSTALLED_APP", "OPAQUE_PUBLIC_DESTINATION"}
+    )
     MIN_VERIFIED_CONFIDENCE = 0.5
 
     def __init__(self, capabilities: Iterable[CapabilityDefinition] = ()) -> None:
@@ -12916,9 +13548,9 @@ class CapabilityCatalog:
         capabilities = []
         for skill in registry.skills:
             lifecycle = "DISCOVERED" if skill.status == "active" else "DEPRECATED"
-            capabilities.append(
-                CapabilityDefinition(
-                    capability_id="capability.%s" % skill.skill_id,
+            capability_id = "capability.%s" % skill.skill_id
+            definition = CapabilityDefinition(
+                    capability_id=capability_id,
                     name=skill.name,
                     description=skill.description,
                     version=skill.version,
@@ -12932,7 +13564,45 @@ class CapabilityCatalog:
                     dependencies=tuple("capability.%s" % dependency for dependency in skill.dependencies),
                     platform_support=skill.platform_support,
                 )
-            )
+            if capability_id == INSTALLED_APP_LAUNCH_CAPABILITY_DEFINITION.capability_id:
+                definition = replace(
+                    definition,
+                    schema_version=INSTALLED_APP_LAUNCH_CAPABILITY_DEFINITION.schema_version,
+                    side_effect_class=INSTALLED_APP_LAUNCH_CAPABILITY_DEFINITION.side_effect_class,
+                    risk_class=INSTALLED_APP_LAUNCH_CAPABILITY_DEFINITION.risk_class,
+                    risk_evaluation_required=INSTALLED_APP_LAUNCH_CAPABILITY_DEFINITION.risk_evaluation_required,
+                    explicit_authorization_policy=INSTALLED_APP_LAUNCH_CAPABILITY_DEFINITION.explicit_authorization_policy,
+                    binding_required=INSTALLED_APP_LAUNCH_CAPABILITY_DEFINITION.binding_required,
+                    target_requirement=INSTALLED_APP_LAUNCH_CAPABILITY_DEFINITION.target_requirement,
+                    target_binding_kind=INSTALLED_APP_LAUNCH_CAPABILITY_DEFINITION.target_binding_kind,
+                    verifier_id=INSTALLED_APP_LAUNCH_CAPABILITY_DEFINITION.verifier_id,
+                    post_dispatch_observation_required=(
+                        INSTALLED_APP_LAUNCH_CAPABILITY_DEFINITION.post_dispatch_observation_required
+                    ),
+                    replay_policy=INSTALLED_APP_LAUNCH_CAPABILITY_DEFINITION.replay_policy,
+                    provider_selection_mode=INSTALLED_APP_LAUNCH_CAPABILITY_DEFINITION.provider_selection_mode,
+                )
+            if capability_id == MAPS_PUBLIC_DESTINATION_CAPABILITY_DEFINITION.capability_id:
+                definition = replace(
+                    definition,
+                    schema_version=MAPS_PUBLIC_DESTINATION_CAPABILITY_DEFINITION.schema_version,
+                    side_effect_class=MAPS_PUBLIC_DESTINATION_CAPABILITY_DEFINITION.side_effect_class,
+                    risk_class=MAPS_PUBLIC_DESTINATION_CAPABILITY_DEFINITION.risk_class,
+                    risk_evaluation_required=MAPS_PUBLIC_DESTINATION_CAPABILITY_DEFINITION.risk_evaluation_required,
+                    explicit_authorization_policy=(
+                        MAPS_PUBLIC_DESTINATION_CAPABILITY_DEFINITION.explicit_authorization_policy
+                    ),
+                    binding_required=MAPS_PUBLIC_DESTINATION_CAPABILITY_DEFINITION.binding_required,
+                    target_requirement=MAPS_PUBLIC_DESTINATION_CAPABILITY_DEFINITION.target_requirement,
+                    target_binding_kind=MAPS_PUBLIC_DESTINATION_CAPABILITY_DEFINITION.target_binding_kind,
+                    verifier_id=MAPS_PUBLIC_DESTINATION_CAPABILITY_DEFINITION.verifier_id,
+                    post_dispatch_observation_required=(
+                        MAPS_PUBLIC_DESTINATION_CAPABILITY_DEFINITION.post_dispatch_observation_required
+                    ),
+                    replay_policy=MAPS_PUBLIC_DESTINATION_CAPABILITY_DEFINITION.replay_policy,
+                    provider_selection_mode=MAPS_PUBLIC_DESTINATION_CAPABILITY_DEFINITION.provider_selection_mode,
+                )
+            capabilities.append(definition)
         return cls(capabilities)
 
     def register(self, capability: CapabilityDefinition) -> dict[str, Any]:
@@ -12942,12 +13612,29 @@ class CapabilityCatalog:
         if capability.capability_id in self._capabilities:
             raise CapabilityIntelligenceError("capability_id must be unique")
         self._capabilities[capability.capability_id] = capability
-        self._validate_dependencies()
+        try:
+            self._validate_dependencies()
+        except Exception:
+            self._capabilities.pop(capability.capability_id, None)
+            raise
         return capability.contract()
 
-    def get(self, capability_id: str) -> dict[str, Any] | None:
+    def contains(self, capability_id: str) -> bool:
+        return capability_id in self._capabilities
+
+    def get(self, capability_id: str) -> dict[str, Any]:
         capability = self._capabilities.get(capability_id)
-        return capability.contract() if capability is not None else None
+        if capability is None:
+            raise CapabilityIntelligenceError("unknown capability_id")
+        return capability.contract()
+
+    def metadata(self, capability_id: str) -> dict[str, Any]:
+        """Return a fresh, side-effect-free copy of canonical static metadata."""
+
+        capability = self._capabilities.get(capability_id)
+        if capability is None:
+            raise CapabilityIntelligenceError("unknown capability_id")
+        return capability.static_metadata()
 
     def contracts(self) -> list[dict[str, Any]]:
         return [capability.contract() for capability in self._capabilities.values()]
@@ -12998,16 +13685,56 @@ class CapabilityCatalog:
             raise CapabilityIntelligenceError("description must be a non-empty bounded label")
         if not cls.SEMVER_PATTERN.fullmatch(capability.version):
             raise CapabilityIntelligenceError("version must be semantic major.minor.patch")
+        if not isinstance(capability.schema_version, str) or not cls.SCHEMA_VERSION_PATTERN.fullmatch(
+            capability.schema_version
+        ):
+            raise CapabilityIntelligenceError("schema_version must be major.minor")
         if capability.source_type not in cls.SOURCE_TYPES:
             raise CapabilityIntelligenceError("unsupported source_type")
         if capability.lifecycle not in cls.LIFECYCLES:
             raise CapabilityIntelligenceError("unsupported lifecycle")
         if capability.risk_level not in cls.RISK_LEVELS:
             raise CapabilityIntelligenceError("unsupported risk_level")
+        if capability.risk_class not in cls.RISK_LEVELS:
+            raise CapabilityIntelligenceError("unsupported risk_class")
+        if not isinstance(capability.side_effect_class, CapabilitySideEffectClass):
+            raise CapabilityIntelligenceError("unsupported side_effect_class")
+        if not isinstance(capability.explicit_authorization_policy, CapabilityAuthorizationPolicy):
+            raise CapabilityIntelligenceError("unsupported explicit_authorization_policy")
+        if not isinstance(capability.target_requirement, CapabilityTargetRequirement):
+            raise CapabilityIntelligenceError("unsupported target_requirement")
+        if not isinstance(capability.replay_policy, CapabilityReplayPolicy):
+            raise CapabilityIntelligenceError("unsupported replay_policy")
+        if not isinstance(capability.provider_selection_mode, CapabilityProviderSelectionMode):
+            raise CapabilityIntelligenceError("unsupported provider_selection_mode")
+        for field_name, value in (
+            ("risk_evaluation_required", capability.risk_evaluation_required),
+            ("binding_required", capability.binding_required),
+            ("post_dispatch_observation_required", capability.post_dispatch_observation_required),
+        ):
+            if not isinstance(value, bool):
+                raise CapabilityIntelligenceError("%s must be boolean" % field_name)
+        if capability.target_binding_kind not in cls.TARGET_BINDING_KINDS:
+            raise CapabilityIntelligenceError("unsupported target_binding_kind")
+        if capability.binding_required != (capability.target_requirement is not CapabilityTargetRequirement.NONE):
+            raise CapabilityIntelligenceError("binding requirement and target requirement must agree")
+        if capability.binding_required != (capability.target_binding_kind != "none"):
+            raise CapabilityIntelligenceError("binding requirement and target binding kind must agree")
+        if capability.post_dispatch_observation_required and not capability.verifier_id:
+            raise CapabilityIntelligenceError("post-dispatch observation requires verifier_id")
         if not isinstance(capability.verifier, str) or not cls.METADATA_LABEL_PATTERN.fullmatch(capability.verifier):
             raise CapabilityIntelligenceError("verifier must be a bounded metadata label")
+        if not isinstance(capability.verifier_id, str) or not cls.METADATA_LABEL_PATTERN.fullmatch(capability.verifier_id):
+            raise CapabilityIntelligenceError("verifier_id must be a bounded metadata label")
+        if capability.verifier_id != capability.verifier:
+            raise CapabilityIntelligenceError("verifier_id must preserve the existing verifier contract")
         if not isinstance(capability.evidence, CapabilityEvidence):
             raise CapabilityIntelligenceError("evidence must use CapabilityEvidence")
+        if not isinstance(capability.required_tools, frozenset):
+            raise CapabilityIntelligenceError("required_tools must be immutable")
+        for field_name in ("required_permissions", "preconditions", "dependencies", "platform_support"):
+            if not isinstance(getattr(capability, field_name), tuple):
+                raise CapabilityIntelligenceError("%s must be immutable" % field_name)
         for field_name, values, required in (
             ("required_tools", capability.required_tools, False),
             ("required_permissions", capability.required_permissions, False),
@@ -13431,7 +14158,7 @@ class CapabilityMethodRegistry:
         """Register only a bounded declaration; it cannot call a method."""
 
         self._validate(method)
-        if self.catalog.get(method.capability_id) is None:
+        if not self.catalog.contains(method.capability_id):
             raise CapabilityIntelligenceError("capability_id must be registered before its method")
         with self._lock:
             if method.method_id in self._methods:
@@ -13528,7 +14255,7 @@ class CapabilityMethodRegistry:
     ) -> list[CapabilityMethodCandidate]:
         """Assess methods without planning, authorizing, or calling a device."""
 
-        if self.catalog.get(capability_id) is None:
+        if not self.catalog.contains(capability_id):
             raise CapabilityIntelligenceError("unknown capability_id")
         permissions = CapabilityEvaluator._metadata_set(available_permissions, "available_permissions")
         platforms = CapabilityEvaluator._metadata_set(available_platforms, "available_platforms")
@@ -13597,7 +14324,7 @@ class CapabilityMethodRegistry:
 
         if not isinstance(trial_approval_id, str) or not self.METADATA_PATTERN.fullmatch(trial_approval_id):
             raise CapabilityIntelligenceError("trial_approval_id must be a bounded opaque label")
-        if self.catalog.get(capability_id) is None:
+        if not self.catalog.contains(capability_id):
             raise CapabilityIntelligenceError("unknown capability_id")
         permissions = CapabilityEvaluator._metadata_set(available_permissions, "available_permissions")
         platforms = CapabilityEvaluator._metadata_set(available_platforms, "available_platforms")
@@ -18269,7 +18996,7 @@ class DynamicPlanner:
         if not isinstance(recommended, dict) or recommended.get("method_type") != "native_capability_link":
             base["decision_trace"].append("Limited trial did not select a native capability link method.")
             return base
-        if recommended.get("capability_id") != "capability.maps_native_link.v1":
+        if recommended.get("capability_id") != MAPS_PUBLIC_DESTINATION_CAPABILITY_DEFINITION.capability_id:
             base["decision_trace"].append("Limited trial capability does not match the Maps bridge.")
             return base
 
@@ -18387,6 +19114,90 @@ class DynamicPlanner:
         )
         base["decision_trace"].append(
             "Selected the installed-app launch Skill and its one contract-approved dispatch tool."
+        )
+        return base
+
+    def plan_bound_public_destination_handoff(
+        self,
+        binding: BoundPublicDestination,
+        tools: set[str],
+        method_advisory: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Plan one Maps handoff without exposing the private destination URL."""
+
+        if not isinstance(binding, BoundPublicDestination):
+            raise ValueError("Maps handoff planning requires BoundPublicDestination")
+        binding.validate_public_schema()
+        if not isinstance(method_advisory, dict):
+            raise ValueError("Maps handoff planning requires a method advisory")
+
+        intent = Intent("map_link", binding.binding_id)
+        registry = SkillRegistry()
+        base = {
+            "schema_version": "1.6",
+            "planner_version": PLANNER_VERSION,
+            "native_capability_bridge_version": NATIVE_CAPABILITY_BRIDGE_VERSION,
+            "goal_class": "bound_public_destination_handoff",
+            "intent": intent.kind,
+            "input_summary": binding.input_summary(),
+            "runtime_binding": binding.schema(),
+            "available_tools": sorted(tools),
+            "selected_tools": [],
+            "tool_selection": {},
+            "skill_selection": {},
+            "method_selection": {
+                "status": str(method_advisory.get("status") or "blocked"),
+                "capability_id": str(method_advisory.get("capability_id") or ""),
+                "trial_scope": str(method_advisory.get("trial_scope") or "none"),
+                "activation": str(method_advisory.get("activation") or "not_active"),
+            },
+            "steps": [],
+            "verification": {},
+            "decision_trace": [],
+            "status": "blocked",
+        }
+        if method_advisory.get("status") != "limited_trial_recommended":
+            base["decision_trace"].append("Method is not approved for a single limited trial.")
+            return base
+        recommended = method_advisory.get("recommended_method")
+        if not isinstance(recommended, dict) or recommended.get("method_type") != "native_capability_link":
+            base["decision_trace"].append("Limited trial did not select the registered Maps method.")
+            return base
+        if recommended.get("capability_id") != MAPS_PUBLIC_DESTINATION_CAPABILITY_DEFINITION.capability_id:
+            base["decision_trace"].append("Limited trial capability does not match the Maps handoff.")
+            return base
+
+        selection = registry.select(intent, tools, binding.registry_snapshot())
+        base["skill_selection"] = selection
+        base["tool_selection"] = dict(selection.get("tool_selection") or {})
+        if selection.get("status") != "ready":
+            base["decision_trace"].append(str(selection.get("reason") or "skill_selection_blocked"))
+            return base
+        if selection.get("skill", {}).get("skill_id") != "maps.open_native_link.v1":
+            base["decision_trace"].append("Selected Skill does not match the Maps handoff.")
+            return base
+        if list(selection.get("selected_tools") or []) != ["open_url"]:
+            base["decision_trace"].append("Maps handoff permits exactly the open_url tool.")
+            return base
+
+        verification = registry.verification_for(selection, intent)
+        base.update(
+            {
+                "status": "ready",
+                "selected_tools": ["open_url"],
+                "steps": [
+                    {
+                        "id": "open-bound-public-destination",
+                        "tool": "open_url",
+                        "arguments": {"public_destination_binding_id": binding.binding_id},
+                        "reason": "Hand one public destination to Maps through a one-time opaque binding.",
+                    }
+                ],
+                "verification": verification,
+            }
+        )
+        base["decision_trace"].append(
+            "Selected the registered Maps method and its one contract-approved dispatch tool."
         )
         return base
 
@@ -21063,6 +21874,264 @@ class DynamicStepStateMachine:
         return destination
 
 
+class TaskExecutionState(Enum):
+    """Normalized read-only task state; existing state machines remain authoritative."""
+
+    READY = "READY"
+    RUNNING = "RUNNING"
+    BLOCKED = "BLOCKED"
+    WAITING_FOR_USER = "WAITING_FOR_USER"
+    FAILED = "FAILED"
+    SUCCEEDED = "SUCCEEDED"
+    UNKNOWN_OUTCOME = "UNKNOWN_OUTCOME"
+
+
+class TaskExecutionReason(Enum):
+    """Stable reason categories for the bounded Stage-2 state projection."""
+
+    AUTHORIZATION_DENIED = "AUTHORIZATION_DENIED"
+    BINDING_INVALID = "BINDING_INVALID"
+    EXECUTOR_AUTHORITY_INVALID = "EXECUTOR_AUTHORITY_INVALID"
+    PRECONDITION_FAILED = "PRECONDITION_FAILED"
+    SECURE_UI_REQUIRES_USER = "SECURE_UI_REQUIRES_USER"
+    VERIFICATION_FAILED = "VERIFICATION_FAILED"
+    UNKNOWN_DISPATCH_OUTCOME = "UNKNOWN_DISPATCH_OUTCOME"
+    INTERNAL_ERROR = "INTERNAL_ERROR"
+
+
+class RecoveryDecision(Enum):
+    """Non-authoritative description of what evidence a later attempt requires."""
+
+    NONE = "NONE"
+    STOP = "STOP"
+    WAIT_FOR_USER_THEN_REOBSERVE = "WAIT_FOR_USER_THEN_REOBSERVE"
+    REQUIRE_FRESH_OBSERVATION = "REQUIRE_FRESH_OBSERVATION"
+    REQUIRE_FRESH_GOVERNED_ATTEMPT = "REQUIRE_FRESH_GOVERNED_ATTEMPT"
+
+
+class TaskExecutionTransitionError(ValueError):
+    """A normalized state transition would violate the Stage-2 contract."""
+
+
+@dataclass(frozen=True)
+class TaskExecutionView:
+    """Immutable projection with no authorization, dispatch, retry, or recovery authority."""
+
+    state: TaskExecutionState
+    reason: TaskExecutionReason | None = None
+    recovery_decision: RecoveryDecision = RecoveryDecision.NONE
+    fresh_observation: bool = False
+    verifier_passed: bool = False
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.state, TaskExecutionState):
+            raise TaskExecutionTransitionError("normalized state must use TaskExecutionState")
+        if self.reason is not None and not isinstance(self.reason, TaskExecutionReason):
+            raise TaskExecutionTransitionError("normalized reason must use TaskExecutionReason")
+        if not isinstance(self.recovery_decision, RecoveryDecision):
+            raise TaskExecutionTransitionError("recovery decision must use RecoveryDecision")
+        if not isinstance(self.fresh_observation, bool) or not isinstance(self.verifier_passed, bool):
+            raise TaskExecutionTransitionError("normalized evidence flags must be boolean")
+        if self.state is TaskExecutionState.SUCCEEDED and not (
+            self.fresh_observation and self.verifier_passed
+        ):
+            raise TaskExecutionTransitionError(
+                "succeeded requires fresh observation and verifier pass"
+            )
+        if self.state is TaskExecutionState.UNKNOWN_OUTCOME:
+            if self.reason is not TaskExecutionReason.UNKNOWN_DISPATCH_OUTCOME:
+                raise TaskExecutionTransitionError("unknown outcome requires its stable reason")
+            if self.recovery_decision is not RecoveryDecision.REQUIRE_FRESH_OBSERVATION:
+                raise TaskExecutionTransitionError("unknown outcome requires fresh observation")
+            if self.verifier_passed:
+                raise TaskExecutionTransitionError("unknown outcome cannot contain verifier success")
+        if self.state is TaskExecutionState.WAITING_FOR_USER:
+            if self.recovery_decision is not RecoveryDecision.WAIT_FOR_USER_THEN_REOBSERVE:
+                raise TaskExecutionTransitionError("waiting for user requires re-observation")
+
+    def audit(self) -> dict[str, Any]:
+        return {
+            "state": self.state.value,
+            "reason": self.reason.value if self.reason is not None else None,
+            "recovery_decision": self.recovery_decision.value,
+            "fresh_observation": self.fresh_observation,
+            "verifier_passed": self.verifier_passed,
+            "authority": {
+                "authorization": False,
+                "binding": False,
+                "dispatch": False,
+                "retry": False,
+                "replay": False,
+                "recovery": False,
+            },
+        }
+
+
+class TaskExecutionTransitionValidator:
+    """Pure transition checks; validation never performs recovery or execution."""
+
+    @classmethod
+    def validate(
+        cls,
+        current: TaskExecutionView,
+        destination: TaskExecutionView,
+        *,
+        same_revision: bool = True,
+        user_returned: bool = False,
+        fresh_observation: bool = False,
+        verifier_passed: bool | None = None,
+        redispatch_requested: bool = False,
+    ) -> TaskExecutionView:
+        if not isinstance(current, TaskExecutionView) or not isinstance(destination, TaskExecutionView):
+            raise TaskExecutionTransitionError("normalized transition requires immutable views")
+        if current.state is TaskExecutionState.UNKNOWN_OUTCOME:
+            if redispatch_requested:
+                raise TaskExecutionTransitionError("unknown outcome cannot authorize redispatch")
+            if destination.state in {TaskExecutionState.READY, TaskExecutionState.RUNNING}:
+                raise TaskExecutionTransitionError("unknown outcome cannot resume execution directly")
+            if not fresh_observation or verifier_passed is None:
+                raise TaskExecutionTransitionError(
+                    "unknown outcome requires fresh observation and verification evidence"
+                )
+        if current.state is TaskExecutionState.WAITING_FOR_USER:
+            if destination.state is TaskExecutionState.RUNNING:
+                raise TaskExecutionTransitionError("waiting for user cannot run directly")
+            if not user_returned or not fresh_observation:
+                raise TaskExecutionTransitionError("user return requires fresh observation")
+        if (
+            same_revision
+            and current.state
+            in {TaskExecutionState.BLOCKED, TaskExecutionState.FAILED, TaskExecutionState.SUCCEEDED}
+            and destination.state is TaskExecutionState.RUNNING
+        ):
+            raise TaskExecutionTransitionError("terminal or blocked state cannot run in the same revision")
+        if destination.state is TaskExecutionState.SUCCEEDED and not (
+            fresh_observation and verifier_passed is True
+        ):
+            raise TaskExecutionTransitionError("succeeded requires fresh observation and verifier pass")
+        return destination
+
+
+class TaskExecutionViewAdapter:
+    """Normalize authoritative runtime evidence without becoming another state machine."""
+
+    _BINDING_FAILURES = frozenset(
+        {"CAPABILITY_BINDING_FAILED"}
+        | {item.value for item in InstalledAppLaunchBindingErrorCode}
+    )
+    _EXECUTOR_AUTHORITY_FAILURES = frozenset(
+        {
+            "EXECUTION_AUTHORITY_REQUIRED",
+            "EXECUTION_AUTHORITY_INVALID",
+            "EXECUTOR_AUTHORITY_INVALID",
+            "MCP_EXECUTION_BOUNDARY_ERROR",
+        }
+    )
+    _AUTHORIZATION_FAILURES = frozenset({"NOT_AUTHORIZED", "AUTHORIZATION_DENIED"})
+    _PRECONDITION_FAILURES = frozenset(
+        {
+            "DEPENDENCY_FAILED",
+            "INVALID_RUNTIME_EVIDENCE",
+            "OBSERVATION_UNAVAILABLE",
+            "RECOVERY_OWNERSHIP_LOST",
+            "STALE_PLAN_REVISION",
+        }
+    )
+
+    @classmethod
+    def from_runtime_result(
+        cls,
+        *,
+        status: str,
+        failure_category: str | None,
+        verification_result: str,
+        step_states: tuple[str, ...] = (),
+        ledger_state: str | None = None,
+        trusted_secure_ui_reason: bool = False,
+    ) -> TaskExecutionView:
+        normalized_status = str(status).upper()
+        failure = str(failure_category).upper() if failure_category else None
+        verification = str(verification_result).upper()
+        normalized_ledger = str(ledger_state).upper() if ledger_state else None
+
+        if normalized_ledger == "UNKNOWN_SIDE_EFFECT" or failure == "UNKNOWN_SIDE_EFFECT":
+            return TaskExecutionView(
+                TaskExecutionState.UNKNOWN_OUTCOME,
+                TaskExecutionReason.UNKNOWN_DISPATCH_OUTCOME,
+                RecoveryDecision.REQUIRE_FRESH_OBSERVATION,
+            )
+        if normalized_status == "DONE":
+            verified = bool(step_states) and all(state == "VERIFIED" for state in step_states)
+            if verification == "PASSED" and verified:
+                return TaskExecutionView(
+                    TaskExecutionState.SUCCEEDED,
+                    recovery_decision=RecoveryDecision.NONE,
+                    fresh_observation=True,
+                    verifier_passed=True,
+                )
+            return TaskExecutionView(
+                TaskExecutionState.FAILED,
+                TaskExecutionReason.INTERNAL_ERROR,
+                RecoveryDecision.STOP,
+            )
+        if verification == "FAILED":
+            return TaskExecutionView(
+                TaskExecutionState.FAILED,
+                TaskExecutionReason.VERIFICATION_FAILED,
+                RecoveryDecision.STOP,
+            )
+        if normalized_status == "WAITING_CONFIRMATION":
+            reason = (
+                TaskExecutionReason.SECURE_UI_REQUIRES_USER
+                if trusted_secure_ui_reason and failure == "SECURE_UI_REQUIRES_USER"
+                else None
+            )
+            return TaskExecutionView(
+                TaskExecutionState.WAITING_FOR_USER,
+                reason,
+                RecoveryDecision.WAIT_FOR_USER_THEN_REOBSERVE,
+            )
+        if failure in cls._AUTHORIZATION_FAILURES:
+            return TaskExecutionView(
+                TaskExecutionState.BLOCKED,
+                TaskExecutionReason.AUTHORIZATION_DENIED,
+                RecoveryDecision.STOP,
+            )
+        if failure in cls._BINDING_FAILURES:
+            return TaskExecutionView(
+                TaskExecutionState.BLOCKED,
+                TaskExecutionReason.BINDING_INVALID,
+                RecoveryDecision.REQUIRE_FRESH_GOVERNED_ATTEMPT,
+            )
+        if failure in cls._EXECUTOR_AUTHORITY_FAILURES:
+            return TaskExecutionView(
+                TaskExecutionState.BLOCKED,
+                TaskExecutionReason.EXECUTOR_AUTHORITY_INVALID,
+                RecoveryDecision.STOP,
+            )
+        if failure in cls._PRECONDITION_FAILURES or normalized_status == "REPLAN_REQUIRED":
+            return TaskExecutionView(
+                TaskExecutionState.BLOCKED,
+                TaskExecutionReason.PRECONDITION_FAILED,
+                RecoveryDecision.REQUIRE_FRESH_GOVERNED_ATTEMPT,
+            )
+        if normalized_status == "READY":
+            return TaskExecutionView(TaskExecutionState.READY)
+        if normalized_status == "RUNNING":
+            return TaskExecutionView(TaskExecutionState.RUNNING)
+        if normalized_status == "BLOCKED":
+            return TaskExecutionView(
+                TaskExecutionState.BLOCKED,
+                TaskExecutionReason.INTERNAL_ERROR,
+                RecoveryDecision.STOP,
+            )
+        return TaskExecutionView(
+            TaskExecutionState.FAILED,
+            TaskExecutionReason.INTERNAL_ERROR,
+            RecoveryDecision.STOP,
+        )
+
+
 @dataclass(frozen=True)
 class DynamicExecutionEvidence:
     """Bounded Executor outcome; it cannot carry an action payload or response."""
@@ -23440,7 +24509,7 @@ class TaskCoordinator:
 
     @staticmethod
     def _dynamic_admission_blocked(plan: Any, failure_category: str) -> dict[str, Any]:
-        return {
+        result = {
             "dynamic_plan_runtime_version": DYNAMIC_PLAN_RUNTIME_VERSION,
             "status": "BLOCKED",
             "task_id": None,
@@ -23455,6 +24524,12 @@ class TaskCoordinator:
             "replan_requested": False,
             "device_actions_sent": [],
         }
+        result["normalized_execution"] = TaskExecutionViewAdapter.from_runtime_result(
+            status=result["status"],
+            failure_category=failure_category,
+            verification_result=result["verification_result"],
+        ).audit()
+        return result
 
     def _dynamic_summary(
         self,
@@ -23469,7 +24544,7 @@ class TaskCoordinator:
         if persist_checkpoint:
             self._persist_dynamic_checkpoint(session, checkpoint_reason, now=checkpoint_now)
         failure = failure_override or session.failure_category
-        return {
+        result = {
             "dynamic_plan_runtime_version": DYNAMIC_PLAN_RUNTIME_VERSION,
             "status": session.status,
             "task_id": session.task_id,
@@ -23495,6 +24570,13 @@ class TaskCoordinator:
             "superseded_revisions": list(session.superseded_revisions),
             "device_actions_sent": [],
         }
+        result["normalized_execution"] = TaskExecutionViewAdapter.from_runtime_result(
+            status=result["status"],
+            failure_category=result["failure_category"],
+            verification_result=result["verification_result"],
+            step_states=tuple(session.step_states.values()),
+        ).audit()
+        return result
 
     def _persist_dynamic_checkpoint(
         self,
@@ -23679,15 +24761,20 @@ class PlanExecutor:
         semantic_binding_store: SemanticActionBindingStore | None = None,
         semantic_search_transaction_store: SemanticSearchTransactionStore | None = None,
         installed_app_launch_binding_store: InstalledAppLaunchBindingStore | None = None,
+        public_destination_binding_store: PublicDestinationBindingStore | None = None,
         input_text_action_binding_store: "InputTextActionBindingStore | None" = None,
         action_obligation_ledger: ActionObligationLedger | None = None,
+        *,
+        execution_owner: Any | None = None,
     ) -> None:
         self.client = client
-        self._execution_port = self._execution_port_for(client)
+        self._execution_owner = execution_owner
+        self._execution_port = self._execution_port_for(client, execution_owner)
         self.risk_controller = risk_controller or RiskController()
         self.semantic_binding_store = semantic_binding_store
         self.semantic_search_transaction_store = semantic_search_transaction_store
         self.installed_app_launch_binding_store = installed_app_launch_binding_store
+        self.public_destination_binding_store = public_destination_binding_store
         self.input_text_action_binding_store = input_text_action_binding_store
         self.action_obligation_ledger = action_obligation_ledger
         self.external_dispatch_count = 0
@@ -23748,6 +24835,22 @@ class PlanExecutor:
         for step in plan.get("steps", []):
             tool = str(step["tool"])
             arguments = dict(step.get("arguments") or {})
+            if not self._dispatch_authorized(tool):
+                obligation_summary = self._transition_action_obligation(
+                    authorized_obligation,
+                    "FAILED",
+                    "execution_authority_required",
+                )
+                return {
+                    "status": "failed",
+                    "executed_steps": records,
+                    "failed_step": step.get("id"),
+                    **self._obligation_result(obligation_summary),
+                    "retry_repair_handoff": {
+                        "reason": "execution_authority_required",
+                        "automatic_retry_allowed": False,
+                    },
+                }
             try:
                 arguments = self._resolve_runtime_binding(
                     tool=tool,
@@ -23774,24 +24877,33 @@ class PlanExecutor:
                         "failed_step": step.get("id"),
                     },
                 }
-            except (InstalledAppLaunchBindingError, InputTextActionBindingError) as error:
+            except (InstalledAppLaunchBindingError, InputTextActionBindingError, PublicDestinationBindingError) as error:
                 obligation_summary = self._transition_action_obligation(
                     authorized_obligation,
                     "FAILED",
                     "runtime_binding_unavailable",
                 )
-                return {
+                typed_reason = (
+                    error.code.value
+                    if isinstance(error, InstalledAppLaunchBindingError)
+                    and isinstance(error.code, InstalledAppLaunchBindingErrorCode)
+                    else None
+                )
+                result = {
                     "status": "failed",
                     "executed_steps": records,
                     "failed_step": step.get("id"),
                     "error": "runtime binding unavailable",
                     **self._obligation_result(obligation_summary),
                     "retry_repair_handoff": {
-                        "reason": "runtime_binding_unavailable",
+                        "reason": typed_reason or "runtime_binding_unavailable",
                         "failed_tool": tool,
                         "failed_step": step.get("id"),
                     },
                 }
+                if typed_reason is not None:
+                    result["reason_code"] = typed_reason
+                return result
             if tool == "describe_screen":
                 arguments = {
                     "include_screenshot": False,
@@ -23807,7 +24919,7 @@ class PlanExecutor:
                 return self._obligation_storage_failure(records, step.get("id"), "dispatch_record_unavailable", obligation)
             try:
                 self.external_dispatch_count += 1
-                response = self._execution_port.call_tool(tool, arguments)
+                response = self._dispatch_tool(tool, arguments)
             except MCPCallError as error:
                 return self._unknown_side_effect(
                     records,
@@ -23991,7 +25103,7 @@ class PlanExecutor:
         return verification.get("error_code") == "observation_unavailable" or "error" in verification
 
     @staticmethod
-    def _execution_port_for(client: Any) -> Any:
+    def _execution_port_for(client: Any, execution_owner: Any | None) -> Any:
         """Use the private real-client port while retaining test-double support.
 
         Unit test doubles model the already-owned executor transport directly.
@@ -24001,10 +25113,28 @@ class PlanExecutor:
         """
 
         if isinstance(client, MCPClient):
-            return client._executor_port()
+            if execution_owner is None:
+                return None
+            return client._executor_port(execution_owner)
         if not callable(getattr(client, "call_tool", None)):
             raise TypeError("PlanExecutor requires an executor-capable transport")
         return client
+
+    def _dispatch_authorized(self, tool: str) -> bool:
+        if not isinstance(self.client, MCPClient):
+            return True
+        if tool in self.client.READ_ONLY_TOOLS:
+            return True
+        return self._execution_port is not None and self._execution_owner is not None
+
+    def _dispatch_tool(self, tool: str, arguments: dict[str, Any]) -> dict[str, Any]:
+        if isinstance(self.client, MCPClient):
+            if tool in self.client.READ_ONLY_TOOLS and self._execution_port is None:
+                return self.client.call_tool(tool, arguments)
+            if self._execution_port is None or self._execution_owner is None:
+                raise MCPExecutionBoundaryError("PlanExecutor has no governed execution authority")
+            return self._execution_port.call_tool(self._execution_owner, tool, arguments)
+        return self._execution_port.call_tool(tool, arguments)
 
     def _resolve_semantic_binding(
         self,
@@ -24099,6 +25229,27 @@ class PlanExecutor:
                 task_id=task_id,
                 context_id=context_id,
             )
+        destination_binding_id = arguments.get("public_destination_binding_id")
+        if destination_binding_id is not None:
+            if set(arguments) != {"public_destination_binding_id"}:
+                raise PublicDestinationBindingError(
+                    "public-destination binding step contains unsupported public arguments"
+                )
+            if self.public_destination_binding_store is None:
+                raise PublicDestinationBindingError("public-destination binding store is unavailable")
+            if task_id is None or context_id is None:
+                raise PublicDestinationBindingError("public-destination binding requires an obligation scope")
+            return self.public_destination_binding_store.claim(
+                str(destination_binding_id),
+                tool=tool,
+                step_id=step_id,
+                task_id=task_id,
+                context_id=context_id,
+            )
+        if tool == "open_url" and step_id == "open-bound-public-destination":
+            raise PublicDestinationBindingError(
+                "governed Maps handoff requires an opaque public-destination binding"
+            )
         input_binding_id = arguments.get("input_text_action_binding_id")
         if input_binding_id is not None:
             if set(arguments) != {"input_text_action_binding_id"}:
@@ -24118,13 +25269,27 @@ class PlanExecutor:
             )
         binding_id = arguments.get("app_launch_binding_id")
         if binding_id is None:
+            if tool == "launch_app" and step_id == "launch-bound-installed-app":
+                raise InstalledAppLaunchBindingError(
+                    "governed installed-app launch requires an opaque binding",
+                    code=InstalledAppLaunchBindingErrorCode.GOVERNED_BINDING_REQUIRED,
+                )
             return arguments
         if set(arguments) != {"app_launch_binding_id"}:
-            raise InstalledAppLaunchBindingError("installed-app binding step contains unsupported public arguments")
+            raise InstalledAppLaunchBindingError(
+                "installed-app binding step contains unsupported public arguments",
+                code=InstalledAppLaunchBindingErrorCode.BINDING_ARGUMENTS_INVALID,
+            )
         if tool != "launch_app" or step_id != "launch-bound-installed-app":
-            raise InstalledAppLaunchBindingError("installed-app binding may authorize only the bound launch step")
+            raise InstalledAppLaunchBindingError(
+                "installed-app binding may authorize only the bound launch step",
+                code=InstalledAppLaunchBindingErrorCode.BINDING_STEP_MISMATCH,
+            )
         if self.installed_app_launch_binding_store is None:
-            raise InstalledAppLaunchBindingError("installed-app binding store is unavailable")
+            raise InstalledAppLaunchBindingError(
+                "installed-app binding store is unavailable",
+                code=InstalledAppLaunchBindingErrorCode.BINDING_UNAVAILABLE,
+            )
         return self.installed_app_launch_binding_store.claim(
             str(binding_id),
             tool=tool,
@@ -24222,20 +25387,26 @@ class PlanExecutor:
             started = time.monotonic()
             attempts = 0
             snapshot: Snapshot | None = None
+            first_observation_result: str | None = None
+            successful_observations = 0
+            observation_error_count = 0
             while True:
                 attempts += 1
                 try:
                     snapshot = self.client.describe(include_ocr=False)
                 except MCPCallError:
-                    return {
-                        "passed": False,
-                        "kind": kind,
-                        "expected_app": "maps",
-                        "app_observed": False,
-                        "attempts": attempts,
-                        "error_code": "observation_unavailable",
-                    }
-                if snapshot.frontmost_bundle_id == "com.apple.Maps":
+                    observation_error_count += 1
+                    attempt_result = "observation_unavailable"
+                else:
+                    successful_observations += 1
+                    attempt_result = (
+                        "maps_observed"
+                        if snapshot.frontmost_bundle_id == "com.apple.Maps"
+                        else "maps_not_observed"
+                    )
+                if first_observation_result is None:
+                    first_observation_result = attempt_result
+                if attempt_result == "maps_observed":
                     return {
                         "passed": True,
                         "kind": kind,
@@ -24243,20 +25414,33 @@ class PlanExecutor:
                         "app_observed": True,
                         "observed_element_count": snapshot.element_count,
                         "attempts": attempts,
+                        "observation_retry_count": attempts - 1,
+                        "observation_error_count": observation_error_count,
+                        "first_observation_result": first_observation_result,
+                        "final_frontmost_bundle_id": snapshot.frontmost_bundle_id,
                         "elapsed_seconds": round(time.monotonic() - started, 3),
                     }
                 elapsed = time.monotonic() - started
                 if elapsed >= timeout:
-                    return {
+                    result = {
                         "passed": False,
                         "kind": kind,
                         "expected_app": "maps",
                         "app_observed": False,
-                        "observed_element_count": snapshot.element_count,
                         "attempts": attempts,
+                        "observation_retry_count": attempts - 1,
+                        "observation_error_count": observation_error_count,
+                        "first_observation_result": first_observation_result,
                         "elapsed_seconds": round(elapsed, 3),
-                        "error_code": "maps_not_observed",
+                        "error_code": (
+                            "maps_not_observed"
+                            if successful_observations
+                            else "observation_unavailable"
+                        ),
                     }
+                    if snapshot is not None:
+                        result["observed_element_count"] = snapshot.element_count
+                    return result
                 time.sleep(min(interval, timeout - elapsed))
 
         return {"passed": False, "kind": kind, "error": "unknown verification kind"}
@@ -24446,13 +25630,14 @@ class ScreenObservationCapabilityArguments:
 
 @dataclass(frozen=True)
 class PublicMapsCapabilityArguments:
-    """Hold the existing validated MapLink adapter only for one host process."""
+    """Carry only the existing opaque one-time public-destination binding."""
 
-    adapter: MapLinkAdapter
+    binding: BoundPublicDestination
 
     def __post_init__(self) -> None:
-        if not isinstance(self.adapter, MapLinkAdapter):
-            raise CapabilityBindingPolicyError("Maps binding requires the existing MapLinkAdapter")
+        if not isinstance(self.binding, BoundPublicDestination):
+            raise CapabilityBindingPolicyError("Maps route requires an existing opaque destination binding")
+        self.binding.validate_public_schema()
 
 
 @dataclass(frozen=True)
@@ -24489,7 +25674,7 @@ class GovernedCapabilityBindingRuntime:
 
     OBSERVE_CAPABILITY_ID = "capability.screen.observe.v1"
     MAPS_CAPABILITY_ID = "capability.maps.open_native_link.v1"
-    APP_LAUNCH_CAPABILITY_ID = "capability.apps.launch_installed.v1"
+    APP_LAUNCH_CAPABILITY_ID = INSTALLED_APP_LAUNCH_CAPABILITY_DEFINITION.capability_id
     OBSERVE_ADAPTER_ID = "adapter.screen_observation.mcp.v1"
     APP_LAUNCH_ADAPTER_ID = "adapter.installed_app_binding.mcp.v1"
     ROUTES = {
@@ -24516,9 +25701,9 @@ class GovernedCapabilityBindingRuntime:
         APP_LAUNCH_CAPABILITY_ID: {
             "skill_id": "apps.launch_installed.v1",
             "semantic_action": "launch_installed_app",
-            "tools": ("launch_app",),
-            "risk": "interaction",
-            "verifier": "frontmost_bound_app",
+            "tools": tuple(sorted(INSTALLED_APP_LAUNCH_CAPABILITY_DEFINITION.required_tools)),
+            "risk": INSTALLED_APP_LAUNCH_CAPABILITY_DEFINITION.risk_class,
+            "verifier": INSTALLED_APP_LAUNCH_CAPABILITY_DEFINITION.verifier_id,
             "input_schema": ("runtime_app_binding",),
             "parameter_type": InstalledAppLaunchCapabilityArguments,
             "adapter_id": APP_LAUNCH_ADAPTER_ID,
@@ -24534,6 +25719,7 @@ class GovernedCapabilityBindingRuntime:
         method_registry: CapabilityMethodRegistry,
         action_obligation_ledger: ActionObligationLedger,
         installed_app_launch_binding_store: InstalledAppLaunchBindingStore | None = None,
+        public_destination_binding_store: PublicDestinationBindingStore | None = None,
         risk_controller: RiskController | None = None,
         available_permissions: Iterable[str] = DEFAULT_SKILL_PERMISSIONS,
         available_platforms: Iterable[str] = DEFAULT_SKILL_PLATFORMS,
@@ -24556,6 +25742,7 @@ class GovernedCapabilityBindingRuntime:
         self._methods = method_registry
         self._ledger = action_obligation_ledger
         self._installed_bindings = installed_app_launch_binding_store or InstalledAppLaunchBindingStore()
+        self._destination_bindings = public_destination_binding_store or PublicDestinationBindingStore()
         self._risk = risk_controller or RiskController()
         self._permissions = CapabilityEvaluator._metadata_set(available_permissions, "available_permissions")
         self._platforms = CapabilityEvaluator._metadata_set(available_platforms, "available_platforms")
@@ -24565,6 +25752,14 @@ class GovernedCapabilityBindingRuntime:
         self._lock = threading.RLock()
         self.plan_executor_invocation_count = 0
         self.executable_binding_count = 0
+        self._plan_executor = PlanExecutor(
+            self._client,
+            risk_controller=self._risk,
+            installed_app_launch_binding_store=self._installed_bindings,
+            public_destination_binding_store=self._destination_bindings,
+            action_obligation_ledger=self._ledger,
+            execution_owner=self,
+        )
 
     @property
     def risk_controller(self) -> RiskController:
@@ -24581,6 +25776,7 @@ class GovernedCapabilityBindingRuntime:
                     "RiskController cannot change after executable binding"
                 )
             self._risk = risk_controller
+            self._plan_executor.risk_controller = risk_controller
 
     @property
     def method_registry(self) -> CapabilityMethodRegistry:
@@ -24623,6 +25819,12 @@ class GovernedCapabilityBindingRuntime:
                 str(route["adapter_id"]),
                 parameters,
             )
+            if isinstance(parameters, PublicMapsCapabilityArguments):
+                self._destination_bindings.prepare(
+                    parameters.binding.binding_id,
+                    task_id=normalized_task,
+                    context_id=normalized_context,
+                )
             self._bindings[key] = binding
             return self._binding_summary(binding)
 
@@ -24658,6 +25860,16 @@ class GovernedCapabilityBindingRuntime:
         if isinstance(binding.parameters, InstalledAppLaunchCapabilityArguments):
             current_time = int(time.time()) if now is None else int(now)
             if binding.parameters.binding.expires_at < current_time:
+                return CapabilityBindingValidation(False, "stale_target_evidence", True)
+        if isinstance(binding.parameters, PublicMapsCapabilityArguments):
+            current_time = int(time.time()) if now is None else int(now)
+            if (
+                binding.parameters.binding.expires_at < current_time
+                or not self._destination_bindings.is_available(
+                    binding.parameters.binding.binding_id,
+                    now=current_time,
+                )
+            ):
                 return CapabilityBindingValidation(False, "stale_target_evidence", True)
         return CapabilityBindingValidation(True)
 
@@ -24745,14 +25957,8 @@ class GovernedCapabilityBindingRuntime:
             method_id=binding.method_id,
             risk_level=step.risk_class,
         )
-        executor = PlanExecutor(
-            self._client,
-            risk_controller=self._risk,
-            installed_app_launch_binding_store=self._installed_bindings,
-            action_obligation_ledger=self._ledger,
-        )
         try:
-            result = executor.execute(
+            result = self._plan_executor.execute(
                 plan,
                 authorization=authorization,
                 action_obligation=obligation,
@@ -24983,9 +26189,12 @@ class GovernedCapabilityBindingRuntime:
         return route
 
     def _validate_current_contracts(self, step: CompiledDynamicPlanStep, route: dict[str, Any]) -> str:
-        capability = self._catalog.get(step.capability_id)
+        try:
+            capability = self._catalog.get(step.capability_id)
+        except CapabilityIntelligenceError as error:
+            raise CapabilityBindingPolicyError("capability_binding_failed: registry contract unavailable") from error
         skill = self._skills.get(step.skill_id)
-        if capability is None or skill is None or skill.get("status") != "active":
+        if skill is None or skill.get("status") != "active":
             raise CapabilityBindingPolicyError("capability_binding_failed: registry contract unavailable")
         if capability.get("lifecycle") == "DEPRECATED":
             raise CapabilityBindingPolicyError("capability_binding_failed: capability deprecated")
@@ -25054,11 +26263,17 @@ class GovernedCapabilityBindingRuntime:
                     "capability_id": NativeCapabilityBridge.CAPABILITY_ID,
                 },
             }
-            return DynamicPlanner().plan_native_map_link(
-                binding.parameters.adapter,
+            plan = DynamicPlanner().plan_bound_public_destination_handoff(
+                binding.parameters.binding,
                 {"open_url"},
                 advisory,
             )
+            plan["governed_claim"] = {
+                "capability_id": step.capability_id,
+                "target_ref": binding.parameters.binding.binding_id,
+                "planning_revision": step.planning_revision,
+            }
+            return plan
         if isinstance(binding.parameters, InstalledAppLaunchCapabilityArguments):
             advisory = {
                 "status": "limited_trial_recommended",
@@ -25105,6 +26320,17 @@ class GovernedCapabilityBindingRuntime:
     def _execution_failure_category(result: dict[str, Any]) -> str:
         handoff = result.get("retry_repair_handoff")
         reason = str(handoff.get("reason") or "") if isinstance(handoff, dict) else ""
+        typed_reason = result.get("reason_code")
+        if (
+            result.get("status") == "failed"
+            and result.get("executed_steps") == []
+            and isinstance(typed_reason, str)
+            and reason == typed_reason
+        ):
+            try:
+                return InstalledAppLaunchBindingErrorCode(typed_reason).value
+            except ValueError:
+                pass
         if reason in {"runtime_target_binding_unavailable", "semantic_binding_unavailable"}:
             return "adapter_unavailable"
         return "execution_failed"
@@ -25140,7 +26366,7 @@ class GovernedAppLaunchEntry:
     """
 
     LAUNCH_INTENT = "launch_installed_app"
-    CAPABILITY_ID = "capability.apps.launch_installed.v1"
+    CAPABILITY_ID = INSTALLED_APP_LAUNCH_CAPABILITY_DEFINITION.capability_id
     METHOD_ID = "method.installed_app_launch.mcp.v1"
     SKILL_ID = "apps.launch_installed.v1"
 
@@ -25197,6 +26423,8 @@ class GovernedAppLaunchEntry:
             dynamic_compiler=DynamicPlanRuntimeCompiler(self._catalog, self._skills),
             dynamic_risk_controller=self._risk_controller,
         )
+        if getattr(bridge, "_canonical_governed_entry", None) is None:
+            bridge._canonical_governed_entry = self
 
     def parse_launch_goal(self, goal: str) -> tuple[bool, str]:
         intent = self._parser.parse(goal)
@@ -25211,12 +26439,19 @@ class GovernedAppLaunchEntry:
         permission_decision: Any,
         trial_approval_id: str,
         requested_app: str | None = None,
+        clarification_response: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """One governed launch for a parsed launch goal.
 
         ``requested_app`` overrides the parsed phrase only when the goal
         text alone is ambiguous; the effective target is still resolved
         exclusively through the one-time inventory binding.
+
+        ``clarification_response`` carries an explicit user selection
+        (``resolution_id`` + ``selected_candidate_ref``) for a previously
+        returned clarification surface. It is a discovery input only, never an
+        authorization grant; the selected target still passes the full
+        governance chain.
         """
         parsed, phrase = self.parse_launch_goal(goal)
         if not parsed and not requested_app:
@@ -25226,7 +26461,15 @@ class GovernedAppLaunchEntry:
             target,
             permission_decision=permission_decision,
             trial_approval_id=trial_approval_id,
+            clarification_response=clarification_response,
         )
+        if isinstance(execution, dict) and execution.get("status") == "TARGET_CLARIFICATION_REQUIRED":
+            return {
+                "status": "TARGET_CLARIFICATION_REQUIRED",
+                "goal_launch_intent": self.LAUNCH_INTENT,
+                "clarification": execution,
+                "execution": None,
+            }
         return {"status": "EXECUTED", "goal_launch_intent": self.LAUNCH_INTENT,
                 "execution": execution}
 
@@ -25236,21 +26479,82 @@ class GovernedAppLaunchEntry:
         *,
         permission_decision: PermissionDecision,
         trial_approval_id: str,
+        clarification_response: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         unavailable = self._bridge._unavailable_input_summary()
         if not isinstance(permission_decision, PermissionDecision) or not permission_decision.eligible:
             return self._bridge._blocked("permission_denied", unavailable)
         if not self._bridge._is_trial_approval(trial_approval_id):
             return self._bridge._blocked("invalid_trial_approval", unavailable)
+        if clarification_response is not None and not isinstance(clarification_response, dict):
+            return self._bridge._blocked("clarification_response_invalid", unavailable)
 
         binding: BoundInstalledApp | None = None
+        inventory: dict[str, Any] | None = None
         try:
             self._bridge._bindings.validate_request(requested_app)
             tools = self._bridge._client.list_tools()
             inventory = self._bridge._client.call_tool("list_apps", {"type": "all"})
-            binding = self._bridge._bindings.bind_unique(inventory, requested_app)
-            request_ref = "request.m1." + uuid4().hex
-            context_ref = "context.m1." + uuid4().hex
+            if clarification_response is not None:
+                binding = self._bridge._bindings.resolve_clarification(
+                    clarification_response.get("resolution_id"),
+                    clarification_response.get("selected_candidate_ref"),
+                    inventory,
+                )
+            else:
+                binding = self._bridge._bindings.bind_unique(inventory, requested_app)
+            return self._execute_bound_binding(
+                binding,
+                tools,
+                permission_decision=permission_decision,
+                trial_approval_id=trial_approval_id,
+                request_ref="request.m1." + uuid4().hex,
+                context_ref="context.m1." + uuid4().hex,
+            )
+        except InstalledAppLaunchBindingError as error:
+            if clarification_response is None and isinstance(inventory, dict):
+                surface = self._bridge.clarification_surface(inventory, requested_app)
+                if surface is not None:
+                    return surface
+            summary = binding.input_summary() if isinstance(binding, BoundInstalledApp) else unavailable
+            reason_code = (
+                error.code.value
+                if isinstance(error.code, InstalledAppLaunchBindingErrorCode)
+                else "canonical_governance_blocked"
+            )
+            return self._bridge._blocked(reason_code, summary)
+        except (
+            MCPCallError,
+            CapabilityBindingPolicyError,
+            CoordinatorStateError,
+            DynamicPlanPolicyError,
+            DynamicPlanRuntimePolicyError,
+            TypeError,
+            ValueError,
+        ):
+            summary = binding.input_summary() if isinstance(binding, BoundInstalledApp) else unavailable
+            return self._bridge._blocked("canonical_governance_blocked", summary)
+        finally:
+            if isinstance(binding, BoundInstalledApp):
+                self._bridge._bindings.discard(binding.binding_id)
+
+    def _execute_bound_binding(
+        self,
+        binding: BoundInstalledApp,
+        tools: list[ToolDescriptor],
+        *,
+        permission_decision: PermissionDecision,
+        trial_approval_id: str,
+        request_ref: str,
+        context_ref: str,
+    ) -> dict[str, Any]:
+        """Lower one already-resolved target through the canonical governed seam."""
+
+        if not isinstance(permission_decision, PermissionDecision) or not permission_decision.eligible:
+            return self._bridge._blocked("permission_denied", binding.input_summary())
+        if not self._bridge._is_trial_approval(trial_approval_id):
+            return self._bridge._blocked("invalid_trial_approval", binding.input_summary())
+        try:
             planner_input = PlannerInput.from_runtime(
                 request_id=request_ref,
                 goal_class=self.LAUNCH_INTENT,
@@ -25290,9 +26594,15 @@ class GovernedAppLaunchEntry:
             )
             raw_execution = self._governed_runtime.dynamic_step_execution_result(step)
             return self._bridge.format_dynamic_execution(binding, coordinated, raw_execution)
+        except InstalledAppLaunchBindingError as error:
+            reason_code = (
+                error.code.value
+                if isinstance(error.code, InstalledAppLaunchBindingErrorCode)
+                else "canonical_governance_blocked"
+            )
+            return self._bridge._blocked(reason_code, binding.input_summary())
         except (
             MCPCallError,
-            InstalledAppLaunchBindingError,
             CapabilityBindingPolicyError,
             CoordinatorStateError,
             DynamicPlanPolicyError,
@@ -25300,11 +26610,7 @@ class GovernedAppLaunchEntry:
             TypeError,
             ValueError,
         ):
-            summary = binding.input_summary() if isinstance(binding, BoundInstalledApp) else unavailable
-            return self._bridge._blocked("canonical_governance_blocked", summary)
-        finally:
-            if isinstance(binding, BoundInstalledApp):
-                self._bridge._bindings.discard(binding.binding_id)
+            return self._bridge._blocked("canonical_governance_blocked", binding.input_summary())
 
 
 @dataclass(frozen=True)
@@ -25382,7 +26688,7 @@ class NativeCapabilityBridge:
     to the existing Risk Controller -> PlanExecutor -> Verifier pipeline.
     """
 
-    CAPABILITY_ID = "capability.maps_native_link.v1"
+    CAPABILITY_ID = MAPS_PUBLIC_DESTINATION_CAPABILITY_DEFINITION.capability_id
     METHOD_ID = "method.maps_legacy_link.v1"
     SKILL_ID = "maps.open_native_link.v1"
 
@@ -25394,6 +26700,7 @@ class NativeCapabilityBridge:
         risk_controller: RiskController | None = None,
         action_obligation_ledger: ActionObligationLedger | None = None,
         destination_binding_store: PublicDestinationBindingStore | None = None,
+        coordinator_store: CoordinatorStateStore | None = None,
     ) -> None:
         if not isinstance(client, MCPClient):
             raise TypeError("NativeCapabilityBridge requires MCPClient")
@@ -25402,6 +26709,7 @@ class NativeCapabilityBridge:
         self._risk_controller = risk_controller or RiskController()
         self._ledger = action_obligation_ledger
         self._destination_bindings = destination_binding_store or PublicDestinationBindingStore()
+        self._coordinator_store = coordinator_store
         if not isinstance(self._planner, DynamicPlanner):
             raise TypeError("planner must use DynamicPlanner")
         if not isinstance(self._risk_controller, RiskController):
@@ -25410,26 +26718,22 @@ class NativeCapabilityBridge:
             raise TypeError("action_obligation_ledger must use ActionObligationLedger")
         if not isinstance(self._destination_bindings, PublicDestinationBindingStore):
             raise TypeError("destination_binding_store must use PublicDestinationBindingStore")
+        if self._coordinator_store is not None and not isinstance(self._coordinator_store, CoordinatorStateStore):
+            raise TypeError("coordinator_store must use CoordinatorStateStore")
         self._catalog = CapabilityCatalog((self.capability_definition(),))
         self._methods = CapabilityMethodRegistry(self._catalog, (self.method_definition(),))
+        self._canonical_governed_entry: GovernedMapsHandoffEntry | None = None
+
+    def _canonical_entry(self) -> "GovernedMapsHandoffEntry":
+        entry = self._canonical_governed_entry
+        if entry is None:
+            entry = GovernedMapsHandoffEntry(self)
+            self._canonical_governed_entry = entry
+        return entry
 
     @classmethod
     def capability_definition(cls) -> CapabilityDefinition:
-        return CapabilityDefinition(
-            capability_id=cls.CAPABILITY_ID,
-            name="maps_native_link",
-            description="Open one public destination through an Apple Maps legacy link.",
-            version="1.0.0",
-            source_type="native_capability_link",
-            lifecycle="AVAILABLE",
-            required_tools=frozenset({"open_url"}),
-            required_permissions=("mcp.foreground_interaction",),
-            risk_level="interaction",
-            preconditions=("nonempty_public_destination",),
-            verifier="frontmost_app_is",
-            dependencies=(),
-            platform_support=("macos_host", "ios_mcp"),
-        )
+        return MAPS_PUBLIC_DESTINATION_CAPABILITY_DEFINITION
 
     @classmethod
     def method_definition(cls) -> CapabilityMethodDefinition:
@@ -25505,49 +26809,17 @@ class NativeCapabilityBridge:
         permission_decision: PermissionDecision,
         trial_approval_id: str,
     ) -> dict[str, Any]:
-        """Run a uniquely resolved public destination through existing gates."""
+        """Run one resolved destination only through the canonical governed entry."""
 
-        unavailable = self._unavailable_input_summary()
         if self._ledger is None:
-            return self._blocked("action_obligation_ledger_required", unavailable)
-        if not isinstance(permission_decision, PermissionDecision) or not permission_decision.eligible:
-            return self._blocked("permission_denied", unavailable)
-        if not self._is_trial_approval(trial_approval_id):
-            return self._blocked("invalid_trial_approval", unavailable)
-        binding: BoundPublicDestination | None = None
-        try:
-            binding, context_id = self._destination_bindings.bind_unique_from_resolution(
-                resolution,
-                task_scope=task_scope,
-                workspace_scope=workspace_scope,
-            )
-            adapter = self._destination_bindings.consume_adapter(binding.binding_id)
-            binding_consumed = self._destination_bindings.was_consumed(binding.binding_id)
-            tools = self._client.list_tools()
-        except (MCPCallError, PublicDestinationBindingError, ReferenceResolutionPolicyError, TypeError, ValueError):
-            if binding is not None:
-                self._destination_bindings.discard(binding.binding_id)
-            return self._blocked("public_destination_not_resolved", unavailable)
-
-        try:
-            result = self._execute_adapter(
-                adapter,
-                tools,
-                permission_decision=permission_decision,
-                trial_approval_id=trial_approval_id,
-                action_obligation=ActionObligationRequest(
-                    obligation_ref="mapshandoff." + uuid4().hex,
-                    task_id=task_scope,
-                    context_id=context_id,
-                    capability_id=self.CAPABILITY_ID,
-                    method_id=self.METHOD_ID,
-                    risk_level="interaction",
-                ),
-                binding_consumed=binding_consumed,
-            )
-            return result
-        finally:
-            self._destination_bindings.discard(binding.binding_id)
+            return self._blocked("action_obligation_ledger_required", self._unavailable_input_summary())
+        return self._canonical_entry().execute_resolved_public_destination(
+            resolution,
+            task_scope=task_scope,
+            workspace_scope=workspace_scope,
+            permission_decision=permission_decision,
+            trial_approval_id=trial_approval_id,
+        )
 
     def execute_maps_link(
         self,
@@ -25556,191 +26828,81 @@ class NativeCapabilityBridge:
         permission_decision: PermissionDecision,
         trial_approval_id: str,
     ) -> dict[str, Any]:
-        """Execute one explicitly approved Maps-link trial without persistence.
+        """Lower the historical convenience API into fresh governed context."""
 
-        ``trial_approval_id`` is deliberately opaque metadata. It records that
-        the caller approved this single trial, but neither confers tool access
-        nor activates the method; the existing risk and verifier gates still
-        decide whether dispatch is allowed and observed.
-        """
-
+        unavailable = self._unavailable_input_summary()
+        if self._ledger is None:
+            return self._blocked("action_obligation_ledger_required", unavailable)
         if not isinstance(permission_decision, PermissionDecision) or not permission_decision.eligible:
-            return self._blocked("permission_denied", self._unavailable_input_summary())
+            return self._blocked("permission_denied", unavailable)
+        if not self._is_trial_approval(trial_approval_id):
+            return self._blocked("invalid_trial_approval", unavailable)
+        task_scope = "task.maps." + uuid4().hex
+        workspace_scope = "workspace.maps." + uuid4().hex
+        now = int(time.time())
         try:
-            adapter = MapLinkAdapter(destination)
-        except (TypeError, ExecutionAdapterError, ValueError):
-            return self._blocked("invalid_public_destination", self._unavailable_input_summary())
-        if not isinstance(trial_approval_id, str) or not CapabilityCatalog.METADATA_LABEL_PATTERN.fullmatch(trial_approval_id):
-            return self._blocked("invalid_trial_approval", adapter.input_summary())
-        try:
-            tools = self._client.list_tools()
-        except MCPCallError:
-            return self._blocked("tool_catalog_unavailable", adapter.input_summary())
-
-        evaluation = CapabilityEvaluator().evaluate(
-            self._catalog,
-            available_tools=tools,
-            available_permissions=DEFAULT_SKILL_PERMISSIONS,
-            available_platforms=DEFAULT_SKILL_PLATFORMS,
-        )
-        orchestration = IntelligenceOrchestrationLayer(self._methods).recommend(
-            IntelligenceOrchestrationRequest(
-                intent_kind="map_link",
-                capability_evaluation=evaluation,
-                permission_decision=permission_decision,
-                available_permissions=tuple(sorted(DEFAULT_SKILL_PERMISSIONS)),
-                available_platforms=tuple(sorted(DEFAULT_SKILL_PLATFORMS)),
-                task_complexity="low",
-                aggregate_confidence=0.95,
-                risk_level="interaction",
-                task_repeatability="unlikely",
-                trust_tier="low",
-                preference="experience_first",
-                teaching_available=False,
-                data_class="public_metadata",
-                offline_mode=True,
-                token_budget=TokenBudgetPolicy(0, "none"),
-                intelligence_profiles=(
-                    IntelligenceCapabilityProfile(
-                        "profile.maps_native_link.v1",
-                        "deterministic_capability",
-                        True,
-                        0.97,
-                        "fast",
-                        "none",
-                        True,
-                        ("public_metadata",),
-                        0,
-                    ),
-                ),
-                limited_trial_approval_id=trial_approval_id,
+            item = self.establish_public_destination_context(
+                destination,
+                task_scope=task_scope,
+                workspace_scope=workspace_scope,
+                now=now,
             )
-        )
-        return self._execute_orchestration_result(
-            adapter,
-            tools,
-            orchestration,
-            action_obligation=None,
-            binding_consumed=False,
-        )
-
-    def _execute_adapter(
-        self,
-        adapter: MapLinkAdapter,
-        tools: set[str],
-        *,
-        permission_decision: PermissionDecision,
-        trial_approval_id: str,
-        action_obligation: ActionObligationRequest | None,
-        binding_consumed: bool,
-    ) -> dict[str, Any]:
-        evaluation = CapabilityEvaluator().evaluate(
-            self._catalog,
-            available_tools=tools,
-            available_permissions=DEFAULT_SKILL_PERMISSIONS,
-            available_platforms=DEFAULT_SKILL_PLATFORMS,
-        )
-        orchestration = IntelligenceOrchestrationLayer(self._methods).recommend(
-            IntelligenceOrchestrationRequest(
-                intent_kind="map_link",
-                capability_evaluation=evaluation,
-                permission_decision=permission_decision,
-                available_permissions=tuple(sorted(DEFAULT_SKILL_PERMISSIONS)),
-                available_platforms=tuple(sorted(DEFAULT_SKILL_PLATFORMS)),
-                task_complexity="low",
-                aggregate_confidence=0.95,
-                risk_level="interaction",
-                task_repeatability="unlikely",
-                trust_tier="low",
-                preference="experience_first",
-                teaching_available=False,
-                data_class="public_metadata",
-                offline_mode=True,
-                token_budget=TokenBudgetPolicy(0, "none"),
-                intelligence_profiles=(
-                    IntelligenceCapabilityProfile(
-                        "profile.maps_native_link.v1",
-                        "deterministic_capability",
-                        True,
-                        0.97,
-                        "fast",
-                        "none",
-                        True,
-                        ("public_metadata",),
-                        0,
-                    ),
+            resolution = ContextReferenceResolver.resolve(
+                ReferenceResolutionRequest(
+                    "PUBLIC_DESTINATION",
+                    task_scope,
+                    workspace_scope,
+                    risk_level="LOW",
                 ),
-                limited_trial_approval_id=trial_approval_id,
+                [item],
+                now=now,
             )
-        )
-        return self._execute_orchestration_result(
-            adapter,
-            tools,
-            orchestration,
-            action_obligation=action_obligation,
-            binding_consumed=binding_consumed,
+        except (PublicDestinationBindingError, ReferenceResolutionPolicyError, TypeError, ValueError):
+            return self._blocked("invalid_public_destination", unavailable)
+        return self.execute_resolved_public_destination(
+            resolution,
+            task_scope=task_scope,
+            workspace_scope=workspace_scope,
+            permission_decision=permission_decision,
+            trial_approval_id=trial_approval_id,
         )
 
-    def _execute_orchestration_result(
+    def format_dynamic_execution(
         self,
-        adapter: MapLinkAdapter,
-        tools: set[str],
-        orchestration: IntelligenceOrchestrationRecommendation,
-        *,
-        action_obligation: ActionObligationRequest | None,
-        binding_consumed: bool,
+        binding: BoundPublicDestination,
+        coordinated: dict[str, Any],
+        execution: dict[str, Any] | None,
     ) -> dict[str, Any]:
-        if orchestration.status != "recommended":
-            return self._blocked("orchestration_blocked", adapter.input_summary())
-        method_advisory = orchestration.method_advisory or {}
-        plan = self._planner.plan_native_map_link(adapter, tools, method_advisory)
-        if plan.get("status") != "ready":
-            return self._blocked("planner_blocked", adapter.input_summary())
-        execution = PlanExecutor(
-            self._client,
-            risk_controller=self._risk_controller,
-            action_obligation_ledger=self._ledger,
-        ).execute(plan, action_obligation=action_obligation)
+        """Adapt the canonical Coordinator result to the established Maps shape."""
+
+        consumed = self._destination_bindings.was_consumed(binding.binding_id)
+        if not isinstance(execution, dict):
+            reason = str(coordinated.get("failure_category") or "canonical_execution_blocked").lower()
+            return self._blocked(reason, binding.input_summary())
         verification = self._safe_verification(execution.get("verification"))
         dispatched = any(record.get("tool") == "open_url" for record in execution.get("executed_steps", ()))
         obligation = execution.get("action_obligation")
-        attempted = dispatched or (isinstance(obligation, dict) and obligation.get("state") == "UNKNOWN_SIDE_EFFECT")
-        if execution.get("status") == "blocked":
-            evidence = NativeExecutionEvidence(
-                self.CAPABILITY_ID,
-                self.METHOD_ID,
-                "native_capability_link",
-                adapter.input_summary(),
-                "blocked",
-                "not_run",
-                False,
-                "not_dispatched",
-            )
-            return self._result(
-                "blocked",
-                evidence,
-                self._safe_verification(None),
-                "risk_controller_blocked",
-                obligation=obligation,
-                binding_consumed=binding_consumed,
-                device_action_count=0,
-            )
+        attempted = dispatched or (
+            isinstance(obligation, dict) and obligation.get("state") == "UNKNOWN_SIDE_EFFECT"
+        )
         if execution.get("status") == "unknown_side_effect":
             evidence = NativeExecutionEvidence(
                 self.CAPABILITY_ID,
                 self.METHOD_ID,
                 "native_capability_link",
-                adapter.input_summary(),
+                binding.input_summary(),
                 "unknown_side_effect",
                 verification["verification_result"],
                 attempted,
                 "link_query_dispatched" if attempted else "not_dispatched",
             )
             return self._result(
-                "unknown_side_effect", evidence, verification,
+                "unknown_side_effect",
+                evidence,
+                verification,
                 "fresh_observation_and_replan_required",
                 obligation=obligation,
-                binding_consumed=binding_consumed,
+                binding_consumed=consumed,
                 device_action_count=1 if attempted else 0,
             )
         if verification["verification_result"] == "maps_observed":
@@ -25748,25 +26910,28 @@ class NativeCapabilityBridge:
                 self.CAPABILITY_ID,
                 self.METHOD_ID,
                 "native_capability_link",
-                adapter.input_summary(),
+                binding.input_summary(),
                 "maps_observed",
                 "maps_observed",
                 True,
                 "link_query_dispatched",
             )
             return self._result(
-                "verified", evidence, verification, None,
+                "verified",
+                evidence,
+                verification,
+                None,
                 obligation=obligation,
-                binding_consumed=binding_consumed,
+                binding_consumed=consumed,
                 device_action_count=1,
-                semantic_result="MAPS_DESTINATION_HANDOFF_VERIFIED" if action_obligation is not None else None,
+                semantic_result="MAPS_DESTINATION_HANDOFF_VERIFIED",
             )
         if dispatched:
             evidence = NativeExecutionEvidence(
                 self.CAPABILITY_ID,
                 self.METHOD_ID,
                 "native_capability_link",
-                adapter.input_summary(),
+                binding.input_summary(),
                 "dispatched",
                 verification["verification_result"],
                 True,
@@ -25778,23 +26943,26 @@ class NativeCapabilityBridge:
                 verification,
                 "fresh_observation_and_replan_required",
                 obligation=obligation,
-                binding_consumed=binding_consumed,
+                binding_consumed=consumed,
                 device_action_count=1,
             )
         evidence = NativeExecutionEvidence(
             self.CAPABILITY_ID,
             self.METHOD_ID,
             "native_capability_link",
-            adapter.input_summary(),
+            binding.input_summary(),
             "dispatch_failed",
             verification["verification_result"],
             False,
             "not_dispatched",
         )
         return self._result(
-            "failed", evidence, verification, "fresh_observation_and_replan_required",
+            "failed",
+            evidence,
+            verification,
+            "fresh_observation_and_replan_required",
             obligation=obligation,
-            binding_consumed=binding_consumed,
+            binding_consumed=consumed,
             device_action_count=0,
         )
 
@@ -25903,13 +27071,27 @@ class NativeCapabilityBridge:
             result = "observation_unavailable"
         else:
             result = "maps_not_observed"
-        return {
+        safe = {
             "kind": "frontmost_app_is",
             "expected_app": "maps",
             "passed": result == "maps_observed",
             "app_observed": result == "maps_observed",
             "verification_result": result,
         }
+        attempts = verification.get("attempts")
+        if isinstance(attempts, int) and attempts > 0:
+            safe["observation_attempt_count"] = attempts
+            safe["observation_retry_count"] = max(0, attempts - 1)
+        error_count = verification.get("observation_error_count")
+        if isinstance(error_count, int) and error_count >= 0:
+            safe["observation_error_count"] = error_count
+        first_result = verification.get("first_observation_result")
+        if first_result in {"maps_observed", "maps_not_observed", "observation_unavailable"}:
+            safe["first_observation_result"] = first_result
+        if result == "maps_observed" and verification.get("final_frontmost_bundle_id") == "com.apple.Maps":
+            safe["fresh_post_observation"] = True
+            safe["final_frontmost_bundle_id"] = "com.apple.Maps"
+        return safe
 
     @staticmethod
     def _result(
@@ -25940,6 +27122,167 @@ class NativeCapabilityBridge:
             else {"reason": retry_reason, "required_next_step": "fresh_observation_and_replan"},
             "navigation_completed": False,
         }
+
+
+class GovernedMapsHandoffEntry:
+    """Canonical M6 entry for one opaque public-destination Maps handoff."""
+
+    MAPS_INTENT = "map_link"
+    CAPABILITY_ID = MAPS_PUBLIC_DESTINATION_CAPABILITY_DEFINITION.capability_id
+    METHOD_ID = NativeCapabilityBridge.METHOD_ID
+
+    def __init__(
+        self,
+        bridge: NativeCapabilityBridge,
+        *,
+        plan_validator: PlanValidator | None = None,
+        coordinator_store: CoordinatorStateStore | None = None,
+    ) -> None:
+        if not isinstance(bridge, NativeCapabilityBridge):
+            raise TypeError("GovernedMapsHandoffEntry requires NativeCapabilityBridge")
+        if not isinstance(bridge._ledger, ActionObligationLedger):
+            raise TypeError("governed Maps handoff requires ActionObligationLedger")
+        self._bridge = bridge
+        self._planner = bridge._planner
+        self._validator = plan_validator or PlanValidator()
+        if not isinstance(self._validator, PlanValidator):
+            raise TypeError("M6 requires the existing PlanValidator")
+        self._risk_controller = bridge._risk_controller
+        self._skills = SkillRegistry()
+        self._catalog = CapabilityCatalog.from_skill_registry(self._skills)
+        active_method = replace(
+            bridge.method_definition(),
+            capability_id=self.CAPABILITY_ID,
+            lifecycle="ACTIVE",
+            verification_status="device_pass",
+            evidence=CapabilityEvidence(
+                success_count=1,
+                failure_count=0,
+                confidence=1.0,
+                last_verified=1,
+            ),
+        )
+        self._methods = CapabilityMethodRegistry(self._catalog, (active_method,))
+        self._governed_runtime = GovernedCapabilityBindingRuntime(
+            bridge._client,
+            capability_catalog=self._catalog,
+            skill_registry=self._skills,
+            method_registry=self._methods,
+            action_obligation_ledger=bridge._ledger,
+            public_destination_binding_store=bridge._destination_bindings,
+            risk_controller=self._risk_controller,
+            available_permissions=DEFAULT_SKILL_PERMISSIONS,
+            available_platforms=DEFAULT_SKILL_PLATFORMS,
+        )
+        self._coordinator = TaskCoordinator(
+            coordinator_store or bridge._coordinator_store or CoordinatorStateStore(),
+            ReadOnlyTaskRuntime(bridge._client),
+            dynamic_runtime=self._governed_runtime,
+            dynamic_compiler=DynamicPlanRuntimeCompiler(self._catalog, self._skills),
+            dynamic_risk_controller=self._risk_controller,
+        )
+        bridge._canonical_governed_entry = self
+
+    def execute_resolved_public_destination(
+        self,
+        resolution: dict[str, Any],
+        *,
+        task_scope: str,
+        workspace_scope: str,
+        permission_decision: PermissionDecision,
+        trial_approval_id: str,
+    ) -> dict[str, Any]:
+        unavailable = self._bridge._unavailable_input_summary()
+        if not isinstance(permission_decision, PermissionDecision) or not permission_decision.eligible:
+            return self._bridge._blocked("permission_denied", unavailable)
+        if not self._bridge._is_trial_approval(trial_approval_id):
+            return self._bridge._blocked("invalid_trial_approval", unavailable)
+        binding: BoundPublicDestination | None = None
+        try:
+            binding, context_id = self._bridge._destination_bindings.bind_unique_from_resolution(
+                resolution,
+                task_scope=task_scope,
+                workspace_scope=workspace_scope,
+            )
+            tools = self._bridge._client.list_tools()
+            return self._execute_bound_binding(
+                binding,
+                tools,
+                permission_decision=permission_decision,
+                trial_approval_id=trial_approval_id,
+                request_ref=task_scope,
+                context_ref=context_id,
+            )
+        except (
+            MCPCallError,
+            PublicDestinationBindingError,
+            ReferenceResolutionPolicyError,
+            CapabilityBindingPolicyError,
+            CoordinatorStateError,
+            DynamicPlanPolicyError,
+            DynamicPlanRuntimePolicyError,
+            TypeError,
+            ValueError,
+        ):
+            summary = binding.input_summary() if isinstance(binding, BoundPublicDestination) else unavailable
+            return self._bridge._blocked("public_destination_not_resolved", summary)
+        finally:
+            if isinstance(binding, BoundPublicDestination):
+                self._bridge._destination_bindings.discard(binding.binding_id)
+
+    def _execute_bound_binding(
+        self,
+        binding: BoundPublicDestination,
+        tools: list[ToolDescriptor],
+        *,
+        permission_decision: PermissionDecision,
+        trial_approval_id: str,
+        request_ref: str,
+        context_ref: str,
+    ) -> dict[str, Any]:
+        if not isinstance(permission_decision, PermissionDecision) or not permission_decision.eligible:
+            return self._bridge._blocked("permission_denied", binding.input_summary())
+        if not self._bridge._is_trial_approval(trial_approval_id):
+            return self._bridge._blocked("invalid_trial_approval", binding.input_summary())
+        planner_input = PlannerInput.from_runtime(
+            request_id=request_ref,
+            goal_class=self.MAPS_INTENT,
+            normalized_intent=self.MAPS_INTENT,
+            task_context_ref=context_ref,
+            context_version=1,
+            capability_catalog=self._catalog,
+            skill_registry=self._skills,
+            method_registry=self._methods,
+            available_tools=tools,
+            available_permissions=DEFAULT_SKILL_PERMISSIONS,
+            available_platforms=DEFAULT_SKILL_PLATFORMS,
+            constraints=(PlannerConstraintState("nonempty_public_destination", "SATISFIED"),),
+        )
+        plan = self._planner.plan_dynamic(planner_input, validator=self._validator)
+        if plan.status != "READY":
+            return self._bridge._blocked("planner_validation_blocked", binding.input_summary())
+
+        owner_token = "owner.m6." + uuid4().hex
+        admitted = self._coordinator.admit_dynamic_plan(owner_token, plan, planner_input)
+        task_id = admitted.get("task_id") if isinstance(admitted, dict) else None
+        if admitted.get("status") == "BLOCKED" or not isinstance(task_id, str):
+            return self._bridge._blocked("coordinator_admission_blocked", binding.input_summary())
+        step = self._coordinator.dynamic_compiled_step(task_id, owner_token, plan.steps[0].step_id)
+        self._governed_runtime.bind_dynamic_step(
+            step,
+            task_id=task_id,
+            context_ref=context_ref,
+            context_version=planner_input.context_version,
+            parameters=PublicMapsCapabilityArguments(binding),
+        )
+        coordinated = self._coordinator.run_dynamic_step(
+            task_id,
+            owner_token,
+            expected_plan_id=plan.plan_id,
+            expected_revision=plan.planning_revision,
+        )
+        raw_execution = self._governed_runtime.dynamic_step_execution_result(step)
+        return self._bridge.format_dynamic_execution(binding, coordinated, raw_execution)
 
 
 @dataclass(frozen=True)
@@ -26028,7 +27371,7 @@ class BoundInstalledAppLaunchBridge:
     permission resolution, memory, or persistent app registry.
     """
 
-    CAPABILITY_ID = "capability.apps.launch_installed.v1"
+    CAPABILITY_ID = INSTALLED_APP_LAUNCH_CAPABILITY_DEFINITION.capability_id
     METHOD_ID = "method.installed_app_launch.mcp.v1"
     SKILL_ID = "apps.launch_installed.v1"
 
@@ -26056,24 +27399,18 @@ class BoundInstalledAppLaunchBridge:
             raise TypeError("risk_controller must use RiskController")
         self._catalog = CapabilityCatalog((self.capability_definition(),))
         self._methods = CapabilityMethodRegistry(self._catalog, (self.method_definition(),))
+        self._canonical_governed_entry: GovernedAppLaunchEntry | None = None
+
+    def _canonical_entry(self) -> GovernedAppLaunchEntry:
+        entry = self._canonical_governed_entry
+        if entry is None:
+            entry = GovernedAppLaunchEntry(self)
+            self._canonical_governed_entry = entry
+        return entry
 
     @classmethod
     def capability_definition(cls) -> CapabilityDefinition:
-        return CapabilityDefinition(
-            capability_id=cls.CAPABILITY_ID,
-            name="installed_app_launch",
-            description="Launch one uniquely resolved installed app through a one-time runtime binding.",
-            version="1.0.0",
-            source_type="computer_use",
-            lifecycle="AVAILABLE",
-            required_tools=frozenset({"launch_app"}),
-            required_permissions=("mcp.foreground_interaction",),
-            risk_level="interaction",
-            preconditions=("unique_installed_app_match",),
-            verifier="frontmost_bound_app",
-            dependencies=(),
-            platform_support=("macos_host", "ios_mcp"),
-        )
+        return INSTALLED_APP_LAUNCH_CAPABILITY_DEFINITION
 
     @classmethod
     def method_definition(cls) -> CapabilityMethodDefinition:
@@ -26168,13 +27505,13 @@ class BoundInstalledAppLaunchBridge:
             return self._blocked("unique_target_unavailable", unavailable)
 
         try:
-            return self._execute_binding(
+            return self._canonical_entry()._execute_bound_binding(
                 binding,
                 tools,
                 permission_decision=permission_decision,
                 trial_approval_id=trial_approval_id,
-                task_id="task.boundlaunch." + uuid4().hex,
-                context_id=None,
+                request_ref="task.boundlaunch." + uuid4().hex,
+                context_ref="context.boundlaunch." + uuid4().hex,
             )
         finally:
             self._bindings.discard(binding.binding_id)
@@ -26212,13 +27549,13 @@ class BoundInstalledAppLaunchBridge:
             return self._blocked("context_reference_not_resolved", unavailable)
 
         try:
-            return self._execute_binding(
+            return self._canonical_entry()._execute_bound_binding(
                 binding,
                 tools,
                 permission_decision=permission_decision,
                 trial_approval_id=trial_approval_id,
-                task_id=task_scope,
-                context_id=context_id,
+                request_ref=task_scope,
+                context_ref=context_id,
             )
         finally:
             self._bindings.discard(binding.binding_id)
@@ -26386,6 +27723,9 @@ class BoundInstalledAppLaunchBridge:
         if not isinstance(execution, dict):
             reason = str(coordinated.get("failure_category") or "canonical_execution_blocked").lower()
             return self._blocked(reason, binding.input_summary())
+        typed_reason = execution.get("reason_code")
+        if typed_reason in {code.value for code in InstalledAppLaunchBindingErrorCode}:
+            return self._blocked(str(typed_reason), binding.input_summary())
         verification = self._safe_verification(execution.get("verification"))
         dispatched = bool(execution.get("executed_steps"))
         obligation = execution.get("action_obligation")
@@ -26426,6 +27766,20 @@ class BoundInstalledAppLaunchBridge:
     @classmethod
     def _is_trial_approval(cls, value: Any) -> bool:
         return isinstance(value, str) and CapabilityCatalog.METADATA_LABEL_PATTERN.fullmatch(value) is not None
+
+    def clarification_surface(self, inventory_payload: dict[str, Any], requested_app: str) -> dict[str, Any] | None:
+        """Return a bounded clarification surface for an ambiguous target, or None.
+
+        Only a genuine ambiguity (multiple candidates with no trusted narrowing
+        path) produces a surface. This never reaches Planner, Risk, or dispatch;
+        it is a user-facing discovery input, not an authorization grant.
+        """
+
+        try:
+            request = self._bindings.clarify(inventory_payload, requested_app)
+        except InstalledAppLaunchBindingError:
+            return None
+        return request.public_summary()
 
     @classmethod
     def _unavailable_input_summary(cls) -> dict[str, Any]:
@@ -32036,7 +33390,7 @@ class CapabilityDiscoveryEngine:
         candidates = tuple(
             capability_id
             for capability_id in graph.validated_capability_ids(normalized_concepts)
-            if catalog.get(capability_id) is not None and evaluated.get(capability_id) is not None and evaluated[capability_id].eligible
+            if catalog.contains(capability_id) and evaluated.get(capability_id) is not None and evaluated[capability_id].eligible
         )
         if not candidates:
             return self._result("CANDIDATE_REQUIRED", ("no_validated_capability_link",), ())
@@ -32083,7 +33437,7 @@ class CapabilityCompositionEngine:
         missing = [
             capability_id
             for capability_id in requested
-            if catalog.get(capability_id) is None or evaluated.get(capability_id) is None or not evaluated[capability_id].eligible
+            if not catalog.contains(capability_id) or evaluated.get(capability_id) is None or not evaluated[capability_id].eligible
         ]
         if missing:
             return self._result("NEEDS_CLARIFICATION", ("capability_unavailable",), ())
@@ -35313,6 +36667,13 @@ class GovernedInputTextRuntime:
         self._bindings.use_authority(self._risk, client)
         self._orchestrator = orchestrator or InputTextOrchestrator()
         self.plan_executor_invocation_count = 0
+        self._plan_executor = PlanExecutor(
+            self._client,
+            risk_controller=self._risk,
+            input_text_action_binding_store=self._bindings,
+            action_obligation_ledger=self._ledger,
+            execution_owner=self,
+        )
 
     def execute(
         self,
@@ -35413,12 +36774,6 @@ class GovernedInputTextRuntime:
         actions: list[dict[str, Any]],
     ) -> dict[str, Any]:
         attempts: list[dict[str, Any]] = []
-        executor = PlanExecutor(
-            self._client,
-            risk_controller=self._risk,
-            input_text_action_binding_store=self._bindings,
-            action_obligation_ledger=self._ledger,
-        )
         for index, action in enumerate(actions, start=1):
             try:
                 if self._method_contract(action["method_id"]) is None:
@@ -35449,8 +36804,8 @@ class GovernedInputTextRuntime:
             if assessment.get("status") != "allowed":
                 return self._result(strategy_plan, strategy, attempts, {"status": "blocked"})
             self.plan_executor_invocation_count += 1
-            dispatches_before = executor.external_dispatch_count
-            execution = executor.execute(
+            dispatches_before = self._plan_executor.external_dispatch_count
+            execution = self._plan_executor.execute(
                 plan,
                 authorization=grant["receipt"],
                 action_obligation=ActionObligationRequest(
@@ -35471,7 +36826,7 @@ class GovernedInputTextRuntime:
                     "status": str(execution.get("status") or "failed"),
                     "ledger_state": str(ledger.get("state") or "UNAVAILABLE"),
                     "verification_result": (execution.get("verification") or {}).get("verification_result"),
-                    "dispatch_count": executor.external_dispatch_count - dispatches_before,
+                    "dispatch_count": self._plan_executor.external_dispatch_count - dispatches_before,
                     "text_len": len(strategy_plan.text),
                     "text_sha16": hashlib.sha256(strategy_plan.text.encode("utf-8")).hexdigest()[:16],
                 }

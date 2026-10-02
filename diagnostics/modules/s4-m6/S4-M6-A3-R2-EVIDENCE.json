@@ -1,0 +1,163 @@
+{
+  "schema_version": "phoneharness.s4-m6-a3-r2-evidence.v1",
+  "module": "S4-M6",
+  "submodule": "S4-M6-A3-R2",
+  "status": "PASS",
+  "REAL_DEVICE_USED": true,
+  "DEVICE_MODEL": "iPhone16,1",
+  "DEVICE_OS": "iOS 17.0 (21A327)",
+  "BOOTSTRAP_VERSION": "2.2.1",
+  "ELLEKIT_VERSION": "1.2-1",
+  "DIRECT_LIBPROC_RUNTIME_STATUS": "AVAILABLE_PARTIAL",
+  "DIRECT_LIBPROC_RUNTIME_DETAIL": {
+    "symbol_resolution": {
+      "proc_listallpids": "AVAILABLE",
+      "proc_listpids": "AVAILABLE",
+      "proc_pidinfo": "AVAILABLE",
+      "proc_name": "AVAILABLE",
+      "proc_pidpath": "AVAILABLE",
+      "proc_pid_rusage": "AVAILABLE",
+      "proc_pidpath_audittoken": "SYMBOL_AVAILABLE_NO_SAFE_TOKEN_SOURCE"
+    },
+    "root_hide_execution_contract": "ephemeral probe required existing platform entitlements plus RootHide fast-path signing",
+    "temporary_probe_files_removed": true,
+    "continuous_monitoring": false
+  },
+  "PROC_LISTALLPIDS_STATUS": "AVAILABLE_PARTIAL_RETURNED_EMPTY",
+  "PROC_LISTPIDS_STATUS": "AVAILABLE_PARTIAL_RETURNED_EMPTY",
+  "DIRECT_PROCESS_COUNT": 0,
+  "DIRECT_PROCESS_COUNT_SEMANTICS": "direct enumeration APIs returned zero on all accepted rounds; zero is not asserted as the device process total",
+  "PROCESS_ENUMERATION_RESULT": "PARTIAL",
+  "PROCESS_ENUMERATION_DETAIL": "targeted per-PID libproc observation succeeded, but direct inventory did not reduce the launchctl-only blind spot",
+  "PROC_PIDTBSDINFO_STATUS": "AVAILABLE",
+  "PROC_PIDTBSDINFO_SAMPLE": {
+    "accepted_rounds": 3,
+    "processes_per_round": 3,
+    "successful_reads_per_round": 3,
+    "fields_used": [
+      "PID",
+      "PPID",
+      "PROCESS_STATUS",
+      "PROCESS_NAME",
+      "START_TIME"
+    ],
+    "uid_gid_persisted": false
+  },
+  "START_TIME_AVAILABLE": "YES",
+  "START_TIME_STABILITY_RESULT": {
+    "classification": "PASS",
+    "same_live_control_plane_process_observed": true,
+    "rounds_per_probe": 3,
+    "accepted_probe_rounds": 3,
+    "stable_reads": "9/9",
+    "observation_time_advanced": true,
+    "active_pid_reuse_test_performed": false,
+    "canonical_discriminator": "PID_PLUS_START_TIME"
+  },
+  "PROC_PID_RUSAGE_STATUS": "AVAILABLE",
+  "PROC_PIDTASKINFO_STATUS": "AVAILABLE",
+  "CPU_METRIC_RESULT": "AVAILABLE_PARTIAL_CUMULATIVE_USER_SYSTEM_TIME_NO_INSTANT_PERCENT",
+  "MEMORY_METRIC_RESULT": "AVAILABLE",
+  "THREAD_METRIC_RESULT": "AVAILABLE",
+  "WAKEUP_METRIC_RESULT": "AVAILABLE",
+  "RESOURCE_METRIC_DETAIL": {
+    "proc_pidtaskinfo_reads": "9/9",
+    "proc_pid_rusage_reads": "9/9",
+    "memory_sources": [
+      "PROC_PIDTASKINFO_RESIDENT_SIZE",
+      "RUSAGE_INFO_V0_PHYS_FOOTPRINT"
+    ],
+    "thread_source": "PROC_PIDTASKINFO_THREAD_COUNT",
+    "wakeup_source": "RUSAGE_INFO_V0_WAKEUPS",
+    "missing_metric_representation": "UNKNOWN_NOT_ZERO",
+    "duplicate_metric_strengthening": false
+  },
+  "AUDIT_TOKEN_IDENTITY_RESULT": "NOT_AVAILABLE_NO_SAFE_AUDIT_TOKEN_SOURCE",
+  "AUDIT_TOKEN_IDENTITY_DETAIL": "proc_pidpath_audittoken resolved, but no arbitrary-process audit_token_t source was available in the bounded read-only provider; the API was not invoked with invented data",
+  "PIDVERSION_RESULT": "UNKNOWN",
+  "UNIQUE_ID_RESULT": "AVAILABLE_PARTIAL_LAUNCHCTL_ONLY_NOT_CORRELATED_TO_LIBPROC_INSTANCE_SEMANTICS",
+  "EXECUTABLE_IDENTITY_RESULT": "AVAILABLE_PARTIAL",
+  "EXECUTABLE_IDENTITY_DETAIL": "proc_pidpath succeeded for the targeted control-plane process and only the executable basename match was retained; path is supporting logical identity, not instance identity",
+  "BUNDLE_COMPOSITION_RESULT": "PASS_PARTIAL",
+  "BUNDLE_COMPOSITION_DETAIL": "launchctl bundle/service relation can be correlated by PID with targeted libproc evidence; libproc does not become app lifecycle authority",
+  "PROVIDER_FUSION_RESULT": "PASS_PARTIAL",
+  "PROVIDER_FUSION_DETAIL": {
+    "launchctl_plus_libproc": "COMPOSE_WHEN_PID_AND_OVERLAPPING_IDENTITY_AGREE",
+    "single_provider": "PARTIAL",
+    "all_providers_unavailable": "UNAVAILABLE",
+    "pid_or_identity_or_discriminator_conflict": "CONFLICT",
+    "conflict_strengthened": false,
+    "authorization": false
+  },
+  "INSTANCE_IDENTITY_STRENGTH_RESULT": "STRONG_PROVIDER_EVIDENCE_AVAILABLE_FOR_TARGETED_PID_PLUS_STABLE_START_TIME",
+  "INSTANCE_IDENTITY_STRENGTH_DETAIL": {
+    "pid_only_is_stable_identity": false,
+    "start_time_provider": "DIRECT_LIBPROC_PROC_PIDTBSDINFO",
+    "stability_proven_for_live_sample": true,
+    "strong_provider_evidence_is_authorization": false,
+    "direct_inventory_available": false
+  },
+  "CONTROL_PLANE_SELF_STRENGTH_RESULT": "PASS_STRONGER_TARGETED_EVIDENCE",
+  "CONTROL_PLANE_SELF_STRENGTH_DETAIL": {
+    "targeted_host_process_observed": true,
+    "pid_present": true,
+    "stable_start_time_present": true,
+    "executable_basename_match": true,
+    "provider_provenance_present": true,
+    "name_substring_used_as_authority": false,
+    "mcp_injected_component_identity_proven_by_process_path": false,
+    "authorization": false
+  },
+  "S4_M4_COMPOSITION_RESULT": "PASS_PARTIAL_DESCRIPTIVE_ONLY",
+  "S4_M5_COMPOSITION_RESULT": "PASS_STRONGER_INSTANCE_CORRELATION_NONCAUSAL",
+  "DEVICE_PROBE_COST": {
+    "accepted_probe_rounds": 3,
+    "sampled_processes_per_round": 3,
+    "api_invocations_per_round": 18,
+    "accepted_api_invocations": 54,
+    "elapsed_ms_per_round": [
+      507,
+      506,
+      508
+    ],
+    "high_frequency_polling": false,
+    "continuous_observer": false,
+    "material_thermal_or_wakeup_pressure_observed": false,
+    "observable_api_errors_in_accepted_rounds": 0
+  },
+  "PROCESS_MUTATION_PERFORMED": false,
+  "SERVICE_MUTATION_PERFORMED": false,
+  "MUTATION_PROVIDER_ADDED": false,
+  "AUTHORIZATION_ADDED": false,
+  "PROVIDER_ABSTRACTION": {
+    "launchctl_provider": "provider.launchctl.readonly",
+    "libproc_provider": "provider.libproc.readonly",
+    "canonical_model_bound_directly_to_libproc": false,
+    "fallback_fabricates_certainty": false
+  },
+  "EXPECTED_WRITE_SET": [
+    "diagnostics/modules/s4-m6/s4_m6_a3_r2_libproc_probe.c",
+    "phoneharness_process_service_observation.py",
+    "test-agent-s4-m6-process-provider-reality-unit.py",
+    "diagnostics/modules/s4-m6/S4-M6-A3-R2-EVIDENCE.json"
+  ],
+  "ACTUAL_WRITE_SET": [
+    "diagnostics/modules/s4-m6/s4_m6_a3_r2_libproc_probe.c",
+    "phoneharness_process_service_observation.py",
+    "test-agent-s4-m6-process-provider-reality-unit.py",
+    "diagnostics/modules/s4-m6/S4-M6-A3-R2-EVIDENCE.json"
+  ],
+  "UNAUTHORIZED_WRITE_COUNT": 0,
+  "FROZEN_PREFLIGHT": "PASS",
+  "FROZEN_POSTFLIGHT": "PASS",
+  "S4_M6_FOCUSED_RESULT": "139/139 PASS",
+  "S4_M5_FOCUSED_RESULT": "100/100 PASS",
+  "FULL_HOST_REGRESSION": "119/119 PASS",
+  "STATIC_CHECK": "PASS",
+  "ROADMAP_STRUCTURE_CHECK": "38/38 PASS",
+  "S4_M5_SHA_EXACT_MATCH": true,
+  "S4_M5_MANIFEST": "8/8 PASS",
+  "ARCHITECTURE_CHANGED": false,
+  "ARCHITECT_REVIEW_REQUIRED": false,
+  "READY_FOR_S4_M6_A3_R3": true
+}

@@ -1,0 +1,216 @@
+{
+  "schema_version": "phoneharness.s4m5.a3r1.device_evidence.v1",
+  "stage": "STAGE 4 / 5",
+  "module": "S4-M5 - FILE / LOG / CRASH INTELLIGENCE",
+  "subphase": "A3-R1 - SECURE MCP AUTH HANDOFF RECOVERY + MISSING CANONICAL DEVICE PROOFS",
+  "status": "PASS",
+  "date": "2026-09-27",
+  "target": {
+    "model": "iPhone16,1",
+    "product": "iPhone 15 Pro",
+    "ios_version": "17.0",
+    "jailbreak": "RootHide",
+    "bootstrap_version": "2.2.1",
+    "ellekit_version": "1.2-1"
+  },
+  "auth_recovery": {
+    "CURRENT_AUTH_FLOW_UNDERSTOOD": "YES",
+    "preference_domain": "com.witchan.ios-mcp.preferences",
+    "preference_key": "authToken",
+    "server_load": "MCPResolveAuthToken -> CFPreferences, fail-closed generation, constant-time X-MCP-Token comparison on every endpoint",
+    "postinst_policy": "existing valid token preserved; new token generated only when invalid; GENERATED tokens staged once as 0600 auth-bootstrap copies under Media views",
+    "AUTH_HANDOFF_METHOD": "user-assisted authenticated SSH (\u00a75.3/\u00a77): operator ran the SSH read in their own terminal; password stayed in their terminal; token redirected directly to a 0600 host file outside the repo; never displayed",
+    "NEW_AUTH_ARCHITECTURE_ADDED": "NO",
+    "MCP_TOKEN_ROTATED": "NO",
+    "TOKEN_ROTATION_REQUIRED": "NO",
+    "CURRENT_MCP_AUTH_RECOVERED": "YES",
+    "validation": "authenticated /health 200 + initialize 200; token value never printed, logged, hashed into evidence, or committed",
+    "MCP_TOKEN_PRINTED_COUNT": 0,
+    "MCP_TOKEN_LOGGED_COUNT": 0,
+    "MCP_TOKEN_PERSISTED_IN_EVIDENCE_COUNT": 0,
+    "MCP_TOKEN_COMMITTED_COUNT": 0,
+    "SSH_PASSWORD_STORED": "NO",
+    "SSH_PACKAGE_CHANGED": "NO",
+    "SSH_CONFIG_CHANGED": "NO",
+    "HOST_TOKEN_FILE_MODE": "0600",
+    "host_token_file_location": "~/.phoneharness/mcp-token (outside source tree; not tracked by git; not referenced by evidence content)",
+    "TEMP_DEVICE_BOOTSTRAP_SECRET_LEFT_BEHIND": "NOT_APPLICABLE (no temp copy created; the direct SSH read left no device-side artifact; device preference token untouched)",
+    "TOKEN_HANDOFF_CLEANUP": "PASS",
+    "GIT_TRACKS_HOST_TOKEN_FILE": "NO"
+  },
+  "baseline": {
+    "authenticated_health": 200,
+    "MCP_INITIALIZE": "PASS",
+    "MCP_TOOL_LIST": "PASS",
+    "tool_count": 47,
+    "s4m5_relevant_tools_present": [
+      "list_dir",
+      "read_file",
+      "get_syslog",
+      "get_crash_logs",
+      "read_crash_log",
+      "get_device_info",
+      "get_frontmost_app",
+      "get_clipboard_metadata"
+    ],
+    "baseline_device_observation": {
+      "machine": "iPhone16,1",
+      "systemName": "iOS",
+      "systemVersion": "17.0",
+      "jailbreak_scheme": "roothide"
+    },
+    "MCP_BASELINE_OBSERVATION": "PASS"
+  },
+  "path_resolution": {
+    "DEVICE_PATH_RESOLUTION": "PASS",
+    "resources_resolved": [
+      {
+        "scope": "APP_CONTAINER",
+        "target": "/var/mobile/Library/Caches/ios-mcp-uploads",
+        "resolved": true,
+        "entry_count": 0
+      },
+      {
+        "scope": "DEVICE_FILE",
+        "target": "/var/jb (RootHide root prefix)",
+        "resolved": true,
+        "entry_count": 21
+      }
+    ],
+    "ROOTHIDE_PATH_CONTEXT_OBSERVED": "YES",
+    "roothide_context": "get_device_info exposes jailbreak.type=roothide with jbroot rootPath scheme /var/containers/Bundle/Application/.jbroot-<id>/ (id redacted); list_dir resolved the RootHide root prefix and returned 21 entries",
+    "FULL_RAW_PATH_PERSISTED_IN_R1_EVIDENCE": "NO"
+  },
+  "bounded_file_read": {
+    "DEVICE_BOUNDED_FILE_READ": "PASS",
+    "resource_kind": "CRASH_REPORT (canonical get_crash_logs target)",
+    "requested_bound_bytes": 65536,
+    "returned_bytes": 4934,
+    "DEVICE_FILE_READ_EXCEEDED_REQUESTED_BOUND": "NO",
+    "encoding": "utf8",
+    "truncated": false,
+    "content_digest_sha256": "f624c5795239f866bed2dd03678ebe7fa85f9bcc772357bf70c014f17be4739f",
+    "cross_channel_consistency": "digest is byte-identical to the A3 USB-extraction digest of the same device report \u2014 canonical MCP read and USB extraction agree on content identity",
+    "RAW_FILE_CONTENT_PERSISTED_IN_EVIDENCE": "NO (content used only to compute the digest, then dropped)",
+    "DEVICE_FILE_SAFE_PROJECTION": "PASS",
+    "DEVICE_FILE_STABLE_READ_COMPOSITION": "PASS",
+    "stable_read": {
+      "size_before": 4934,
+      "size_after": 4934,
+      "date_before": 1790513322,
+      "date_after": 1790513322,
+      "evaluate_stable_file_read": "STABLE"
+    },
+    "MATCHING_METADATA_PROVES_ATOMIC_STABILITY": "NO",
+    "FILE_STABLE_READ_PROVES_GLOBAL_IDENTITY": "NO"
+  },
+  "unified_logging": {
+    "DEVICE_UNIFIED_LOG_CAPTURE": "PASS",
+    "path": "get_syslog -> LogManager -> mcp-logreader (live_stream mode reported by the provider)",
+    "MCP_LOGREADER_EXECUTED": "YES",
+    "request": {
+      "seconds": 3,
+      "max_lines": 20
+    },
+    "DEVICE_LOG_RESULT_COUNT_WITHIN_BOUND": "YES",
+    "entry_count": 20,
+    "truncated_at_bound": true,
+    "DEVICE_LOG_CAPTURE_RUNTIME_BOUNDED": "YES",
+    "UNBOUNDED_DEVICE_LOG_STREAM_STARTED": "NO",
+    "CONTINUOUS_DEVICE_LOG_COLLECTION_STARTED": "NO",
+    "CANONICAL_LOG_PARSE_EXCEPTION_COUNT": 0,
+    "CANONICAL_LOG_TYPED_ENTRY_COUNT": 20,
+    "canonical_parse_statuses": {
+      "COMPLETE": 20,
+      "PARTIAL": 0,
+      "UNKNOWN": 0
+    },
+    "CANONICAL_LOG_SAFE_PROJECTION": "PASS",
+    "CANONICAL_RAW_LOG_PERSISTED": "NO",
+    "provider_private_value": "NOT_OBSERVED in the 20-entry canonical sample (A3's 50,941-line USB capture already proved 9,646/9,646 <private> preservation)"
+  },
+  "crash": {
+    "DEVICE_CRASH_DIRECTORY_QUERY": "PASS",
+    "report_count": 7,
+    "extensions": [
+      "ips"
+    ],
+    "CRASH_REPORT_ACCESS_PERMISSION": "PASS",
+    "bounded_read_resource": "ExcUserFault_diagnosticd-2026-09-27-204841.ips (canonical get_crash_logs target)",
+    "DEVICE_BOUNDED_CRASH_READ": "PASS",
+    "DEVICE_CRASH_READ_EXCEEDED_BOUND": "NO",
+    "requested_bound_bytes": 262144,
+    "bytes_received": 4934,
+    "LEGACY_UNBOUNDED_CRASH_READER_USED_FOR_GOVERNED_PROOF": "NO",
+    "REAL_CRASH_PARSE_EXCEPTION_COUNT": 0,
+    "parse_result": {
+      "parse_status": "COMPLETE",
+      "incident_type": "APP_CRASH",
+      "process_name": "diagnosticd",
+      "pid": 3204,
+      "exception_type": "EXC_GUARD",
+      "incident_id_present": true
+    },
+    "REAL_CRASH_IDENTITY": "PASS",
+    "REAL_CRASH_SAFE_PROJECTION": "PASS",
+    "cross_channel_note": "same report digest f624c579... as the A3 USB extraction \u2014 canonical and USB channels agree on content identity"
+  },
+  "correlation": {
+    "DEVICE_DIAGNOSTIC_CORRELATION": "NOT_APPLICABLE",
+    "reason": "the canonical 3-second live log window does not overlap the historical crash reports; no legitimate bounded correlation exists and none was fabricated",
+    "CORRELATION_REASON_WITHOUT_EVIDENCE_COUNT": 0,
+    "DEVICE_CORRELATION_CLAIMS_ROOT_CAUSE": "NO",
+    "DIAGNOSTIC_CORRELATION_IS_AUTHORIZATION": "NO"
+  },
+  "boundaries": {
+    "UNRELATED_DEVICE_MUTATION_COUNT": 0,
+    "RAW_MCP_FILE_RESULT_IS_TYPED_EVIDENCE": "NO",
+    "RAW_MCP_LOG_RESULT_IS_TYPED_EVIDENCE": "NO",
+    "RAW_MCP_CRASH_RESULT_IS_TYPED_EVIDENCE": "NO",
+    "SECOND_ARTIFACT_STORE_ADDED": "NO",
+    "SECOND_TRACE_SYSTEM_ADDED": "NO",
+    "SECOND_FRESHNESS_SYSTEM_ADDED": "NO",
+    "CRASH_DATABASE_ADDED": "NO",
+    "LOG_DATABASE_ADDED": "NO",
+    "FILE_EVIDENCE_STORE_ADDED": "NO",
+    "GENERIC_SHELL_ADDED": "NO",
+    "PROCESS_SERVICE_RUNTIME_ADDED": "NO",
+    "PACKAGE_MANAGER_ADDED": "NO",
+    "SOFTWARE_MANAGER_ADDED": "NO",
+    "HEAVY_SYMBOLICATION_IMPLEMENTED": "NO",
+    "DEVICE_EVIDENCE_AUTO_ROOT_CAUSE_COUNT": 0
+  },
+  "production_delta": {
+    "R1_PRODUCTION_SYMBOL_DELTA": "NONE",
+    "note": "environment recovery + missing proofs only; the accepted A3 .ips parser fix remains untouched"
+  },
+  "privacy": {
+    "scan": "evidence artifact contains no token, token hash, SSH password, raw file content, raw log lines, full crash report, or sensitive absolute paths; report references use digest prefixes and basenames only",
+    "FULL_CHAIN_OF_THOUGHT_PERSISTED": "NO"
+  },
+  "validation": {
+    "s4_m5_focused": "100/100 PASS",
+    "s4_m4_compatibility": "51/51 PASS",
+    "s4_m3_compatibility": "50/50 PASS",
+    "s4_m2_compatibility": "45/45 PASS",
+    "s4_m1_compatibility": "49/49 PASS",
+    "s4_m0_compatibility": "38/38 PASS",
+    "complete_offline_host_regression": "116/116 PASS (115.97s)",
+    "static_check": "PASS",
+    "diff_check": "PASS (delta limited to the focused test file and this evidence artifact; no production change in R1)",
+    "frozen_integrity": "PASS (all frozen modules byte-identical to their pins)"
+  },
+  "compatibility": {
+    "S4_M4_COMPATIBILITY": "PASS",
+    "S4_M3_COMPATIBILITY": "PASS",
+    "S4_M2_COMPATIBILITY": "PASS",
+    "S4_M1_COMPATIBILITY": "PASS",
+    "S4_M0_COMPATIBILITY": "PASS",
+    "STAGE_3_COMPATIBILITY": "PASS",
+    "STAGE_2_COMPATIBILITY": "PASS"
+  },
+  "blocking_debt_count": 0,
+  "architect_review_required": false,
+  "ready_for_s4_m5_b_closeout": "YES",
+  "next_step": "RETURN S4-M5-A3-R1 RESULT TO PRINCIPAL ARCHITECT"
+}

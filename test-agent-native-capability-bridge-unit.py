@@ -7,10 +7,14 @@ open a URL, or perform a device action.
 
 from __future__ import annotations
 
+import tempfile
 import unittest
+from pathlib import Path
 from typing import Any
 
 from phoneharness_agent import (
+    ActionObligationLedger,
+    CoordinatorStateStore,
     IDENTITY_CONSENT_VERSION,
     MCPClient,
     MCPExecutionBoundaryError,
@@ -93,11 +97,16 @@ class NativeCapabilityBridgeTests(unittest.TestCase):
 
     def test_bridge_runs_only_through_executor_then_maps_verifier(self) -> None:
         client = FakeMapsMCPClient()
-        result = NativeCapabilityBridge(client).execute_maps_link(
-            "Kuching Waterfront",
-            permission_decision=eligible_permission(),
-            trial_approval_id="approval.maps_trial.v1",
-        )
+        with tempfile.TemporaryDirectory() as directory:
+            result = NativeCapabilityBridge(
+                client,
+                action_obligation_ledger=ActionObligationLedger(Path(directory) / "ledger"),
+                coordinator_store=CoordinatorStateStore(Path(directory) / "coordinator.json"),
+            ).execute_maps_link(
+                "Kuching Waterfront",
+                permission_decision=eligible_permission(),
+                trial_approval_id="approval.maps_trial.v1",
+            )
         self.assertEqual("verified", result["status"])
         self.assertEqual("maps_observed", result["execution_evidence"]["execution_status"])
         self.assertEqual("maps_observed", result["execution_evidence"]["verification_result"])
