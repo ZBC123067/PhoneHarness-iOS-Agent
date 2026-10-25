@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZTako — AI 的未来，不应该让你的 iPhone 掉队</title>
+<meta name="description" content="ZTako 是一个开源的个人 AI Agent 项目，探索为可越狱 iPhone 带来下一代智能设备自动化体验。你的 iPhone，你的 AI，你的掌控。">
+<link rel="canonical" href="https://zbc123067.github.io/PhoneHarness-iOS-Agent/zh-CN/">
+<link rel="alternate" hreflang="en" href="https://zbc123067.github.io/PhoneHarness-iOS-Agent/en/">
+<link rel="alternate" hreflang="zh-CN" href="https://zbc123067.github.io/PhoneHarness-iOS-Agent/zh-CN/">
+<link rel="alternate" hreflang="x-default" href="https://zbc123067.github.io/PhoneHarness-iOS-Agent/">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%236c8cff'/%3E%3Cstop offset='1' stop-color='%23a06bff'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='14' fill='%2305070f'/%3E%3Ctext x='32' y='44' font-family='Arial,sans-serif' font-size='34' font-weight='800' fill='url(%23g)' text-anchor='middle'%3EZ%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body class="zh">
+<div class="aurora" aria-hidden="true"></div>
+
+<header class="site-header">
+  <div class="header-inner">
+    <a class="brand" href="#hero" aria-label="ZTako 首页">
+      <svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="14" fill="rgba(108,140,255,0.15)"/><text x="32" y="44" font-family="Arial,sans-serif" font-size="34" font-weight="800" fill="#8fa5ff" text-anchor="middle">Z</text></svg>
+      ZTako
+    </a>
+    <nav class="main-nav" aria-label="主导航">
+      <a href="#gap">体验缺口</a>
+      <a href="#action">真实行动</a>
+      <a href="#jarvis">个人助手</a>
+      <a href="#devices">iPhone × Mac</a>
+      <a href="#vision">视觉智能</a>
+      <a href="#engineering">开源实力</a>
+      <a href="#roadmap">路线图</a>
+      <span class="lang-switch">
+        <a href="../en/" data-lang="en">English</a>
+        <a href="./" data-lang="zh-CN" aria-current="true">简体中文</a>
+      </span>
+    </nav>
+  </div>
+</header>
+
+<main>
+<!-- SECTION 01 — Hero -->
+<section class="hero" id="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <span class="pill foundation">开源 · 持续开发中</span>
+      <h1>AI 的未来，<span class="grad">不应该让你的 iPhone 掉队。</span></h1>
+      <p class="sub"><strong>认识 ZTako。</strong>一个开源的个人 AI Agent 项目，探索为可越狱的 iPhone 设备带来下一代智能自动化体验。</p>
+      <span class="hero-tagline">为你已经拥有的 iPhone，探索新一代 AI 体验。</span>
+      <div class="btn-row">
+        <a class="btn primary" href="#action">探索这段体验</a>
+        <a class="btn ghost" href="https://github.com/ZBC123067/PhoneHarness-iOS-Agent" target="_blank" rel="noopener">在 GitHub 上查看</a>
+      </div>
+      <p class="fineprint">你的 iPhone，你的 AI，你的掌控。· 不只是聊天机器人 —— 一个真正与设备协同的 Agent。</p>
+    </div>
+    <div class="phone-wrap reveal">
+      <div class="phone" aria-hidden="true">
+        <div class="notch"></div>
+        <div class="screen">
+          <div class="app-dot" style="top:14%;left:12%"></div>
+          <div class="app-dot" style="top:14%;left:44%"></div>
+          <div class="app-dot" style="top:14%;right:12%"></div>
+          <div class="halo"></div>
+          <div class="wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          <div class="action-ghost" id="heroGhost" style="top:58%;left:38%"></div>
+          <div class="task-card"><b>ZTako Agent</b><span id="heroCardStatus">正在观察屏幕…</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="wrap" style="margin-top:3rem">
+    <div class="glass task-console">
+      <div class="window-dots" aria-hidden="true"><span></span><span></span><span></span></div>
+      <div class="task-input">
+        <span aria-hidden="true">›</span>
+        <span id="heroTask" data-tasks='["打开浏览器，搜索这个信息，把结果整理给我。","找到我刚下载的文件，帮我准备一封邮件。","看看这个页面有什么问题，告诉我怎么处理。","打开这个 App，找到对应设置帮我修改。"]'></span>
+        <span class="caret" aria-hidden="true"></span>
+      </div>
+      <div class="agent-status" id="heroChips" aria-live="polite">
+        <span class="chip">观察屏幕</span>
+        <span class="chip">理解任务</span>
+        <span class="chip">规划步骤</span>
+        <span class="chip">请求授权</span>
+        <span class="chip">执行操作</span>
+        <span class="chip">核对结果</span>
+      </div>
+      <p class="concept-note"><span class="pill concept">交互概念演示</span> 一句话任务执行的愿景演示。动画为概念展示，并非连接真实设备。</p>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 02 — The Missing AI Experience -->
+<section id="gap">
+  <div class="wrap">
+    <span class="section-kicker">AI 体验缺口</span>
+    <h2>新一代 AI 手机正在到来。<br>那些仍停留在<span class="grad">旧系统的 iPhone 呢？</span></h2>
+    <p class="lead">整个行业里，手机正在变成 AI 助手：理解自然语言、读懂屏幕内容、替你完成任务。但这些体验不会自动降临到停留在旧版 iOS 的 iPhone 上。</p>
+    <div class="gap-compare">
+      <div class="glass gap-col new reveal">
+        <h3>新一代 AI 手机浪潮</h3>
+        <ul>
+          <li>Apple Intelligence</li>
+          <li>Galaxy AI</li>
+          <li>豆包手机助手</li>
+          <li>努比亚 AI</li>
+        </ul>
+        <p class="col-note">新硬件与新系统版本，被宣称为智能手机的未来。</p>
+      </div>
+      <div class="gap-mid" aria-hidden="true">
+        <span class="bolt">⚡</span>
+        <span>AI 体验<br>缺口</span>
+      </div>
+      <div class="glass gap-col legacy reveal">
+        <h3>刻意留在原地的 iPhone</h3>
+        <ul>
+          <li>iOS 17 及更早版本</li>
+          <li>RootHide</li>
+          <li>TrollStore</li>
+          <li>ElleKit 与插件生态</li>
+          <li>深度系统定制</li>
+        </ul>
+        <p class="col-note">这些用户为了越狱生态、兼容性与掌控力，选择保留自己的环境。</p>
+      </div>
+    </div>
+    <div class="ztako-path reveal">
+      <p class="ztako-name grad">ZTako 探索一条新的路。</p>
+      <p class="lead" style="margin:0.8rem auto 0;max-width:44rem">不是要求用户放弃自己选择的环境，而是探索如何让现代 AI Agent 与他们已经掌控的 iPhone 协同工作 —— 把越狱级的设备控制能力与现代 AI 模型结合起来。</p>
+      <p class="fineprint">Apple Intelligence、Galaxy AI、豆包、努比亚 AI 仅作为公开行业背景提及。不声称任何官方合作、认可或功能等效，也未使用任何官方 Logo。</p>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 03 — One Instruction. Real Action. -->
+<section id="action">
+  <div class="wrap">
+    <span class="section-kicker">一句话，真实行动</span>
+    <h2>不用告诉手机点哪里，<br>只需要告诉它<span class="grad">你想完成什么。</span></h2>
+    <p class="lead">ZTako 不只是一个问答聊天机器人。目标是：你描述想要的结果，Agent 观察屏幕、理解界面、规划步骤、在需要时请求授权、执行操作，然后核对真实发生的结果。</p>
+    <div class="pipeline" id="pipeline" role="group" aria-label="Agent 任务流水线（交互概念演示）">
+      <div class="step" tabindex="0" aria-pressed="false"><span class="n">1</span><b>自然语言</b><span>你描述目标</span></div>
+      <div class="step" tabindex="0" aria-pressed="false"><span class="n">2</span><b>理解任务</b><span>解析意图与约束</span></div>
+      <div class="step" tabindex="0" aria-pressed="false"><span class="n">3</span><b>观察屏幕</b><span>读取实时界面</span></div>
+      <div class="step" tabindex="0" aria-pressed="false"><span class="n">4</span><b>识别元素</b><span>识别 App 与控件，而非像素</span></div>
+      <div class="step" tabindex="0" aria-pressed="false"><span class="n">5</span><b>规划步骤</b><span>把目标拆解为动作</span></div>
+      <div class="step" tabindex="0" aria-pressed="false"><span class="n">6</span><b>确认授权</b><span>敏感操作由你批准</span></div>
+      <div class="step" tabindex="0" aria-pressed="false"><span class="n">7</span><b>执行操作</b><span>点击、滑动、输入、启动</span></div>
+      <div class="step" tabindex="0" aria-pressed="false"><span class="n">8</span><b>再次观察</b><span>重新查看当前屏幕</span></div>
+      <div class="step" tabindex="0" aria-pressed="false"><span class="n">9</span><b>核对结果</b><span>确认真实结果</span></div>
+    </div>
+    <p class="concept-note"><span class="pill concept">交互概念演示</span> 可以点击任意步骤。这条链路背后的设备控制原语（点击、滑动、输入、截图、OCR、无障碍树读取）今天已作为 ZTako 的开源 MCP 基础存在；完整的一句话自主执行链路是研发方向。</p>
+    <div class="scenario-list">
+      <div class="scenario reveal">
+        <p class="q">"帮我打开浏览器，搜索这个信息，把结果整理给我。"</p>
+        <span class="tier pill vision">未来体验概念</span>
+      </div>
+      <div class="scenario reveal">
+        <p class="q">"找到我刚才下载的文件，帮我准备一封邮件。"</p>
+        <span class="tier pill vision">未来体验概念</span>
+      </div>
+      <div class="scenario reveal">
+        <p class="q">"看看这个页面有什么问题，告诉我应该怎么处理。"</p>
+        <span class="tier pill vision">未来体验概念</span>
+      </div>
+      <div class="scenario reveal">
+        <p class="q">"打开这个 App，找到对应设置并帮我修改。"</p>
+        <span class="tier pill vision">未来体验概念</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 04 — Meet Your Personal Jarvis -->
+<section id="jarvis">
+  <div class="wrap">
+    <span class="section-kicker">遇见你的个人 Jarvis</span>
+    <h2>属于你的个人 Jarvis，<br>围绕<span class="grad">你的 iPhone 打造。</span></h2>
+    <p class="lead">长期愿景：一个能倾听、跨 App 保留任务上下文、智能规划与执行、如实反馈结果、并逐渐了解你偏好的助手。</p>
+    <div class="grid cols-3">
+      <div class="glass reveal"><h3>🎙 语音交互</h3><p class="lead" style="font-size:0.92rem">自然说话，而不是一层层点菜单。</p><span class="pill vision">愿景</span></div>
+      <div class="glass reveal"><h3>🧭 跨 App 任务</h3><p class="lead" style="font-size:0.92rem">一个目标可以贯穿多个 App 与系统服务。</p><span class="pill vision">愿景</span></div>
+      <div class="glass reveal"><h3>📌 任务上下文</h3><p class="lead" style="font-size:0.92rem">进行中的任务保留状态，可以恢复继续。</p><span class="pill development">开发中</span></div>
+      <div class="glass reveal"><h3>🪄 智能规划</h3><p class="lead" style="font-size:0.92rem">计划只是提议 —— 执行前后都会被验证。</p><span class="pill foundation">已验证基础</span></div>
+      <div class="glass reveal"><h3>🔎 如实反馈</h3><p class="lead" style="font-size:0.92rem">结果对照真实屏幕核实，而不是想当然。</p><span class="pill foundation">已验证基础</span></div>
+      <div class="glass reveal"><h3>🧠 记忆与技能</h3><p class="lead" style="font-size:0.92rem">个人记忆可以为操作提供参考，但永远不会授权操作。</p><span class="pill development">开发中</span></div>
+    </div>
+    <p class="fineprint">完整的常驻监听 Jarvis 语音助手与全自动任务执行属于分阶段的产品方向，并非当前生产功能。ZTako 不会在明确的授权边界之外执行无人值守的特权操作。</p>
+  </div>
+</section>
+
+<!-- SECTION 05 — iPhone × Mac -->
+<section id="devices">
+  <div class="wrap">
+    <span class="section-kicker">iPhone × Mac</span>
+    <h2>两台设备，<br>一个<span class="grad">互联的智能体验。</span></h2>
+    <p class="lead">这是 ZTako 与单一手机聊天助手的重要不同：你的 Mac 可以通过受控连接观察、辅助和驱动 iPhone —— 今天用于开发与验证，未来作为任务接力的基础。</p>
+    <div class="devices-stage">
+      <div class="devices-row">
+        <div class="macbook reveal" aria-hidden="true">
+          <div class="mb-screen">
+            <div class="line">ztako@mac ~ % agent connect --device iphone</div>
+            <div class="line" style="color:#8ff0c8">✓ 设备已连接 · MCP 会话激活</div>
+            <div class="line">&gt; describe_screen --frontmost</div>
+            <div class="line" style="color:#9cc4ff">→ 24 个元素 · 当前 App: SpringBoard</div>
+            <div class="line">&gt; <span class="cursor"></span></div>
+          </div>
+          <div class="mb-base"></div>
+        </div>
+        <div class="link-col">
+          <div class="link-beam" aria-hidden="true">
+            <div class="track"></div>
+            <div class="pulse"></div>
+            <div class="pulse back"></div>
+          </div>
+          <div class="link-label" id="linkLabel" data-phases='[["设备连接","受控 MCP 通道，令牌认证"],["屏幕观察","Mac 可以读取 iPhone 的实时界面状态"],["命令与状态","查询与受控命令双向流动"],["未来：任务接力","在 Mac 发起，在 iPhone 继续 —— 规划中"]]'><b>设备连接</b>受控 MCP 通道，令牌认证</div>
+        </div>
+        <div class="phone-wrap reveal">
+          <div class="phone" style="width:180px;height:370px" aria-hidden="true">
+            <div class="notch" style="width:56px;height:15px"></div>
+            <div class="screen">
+              <div class="halo" style="width:70px;height:70px"></div>
+              <div class="task-card" style="font-size:0.62rem"><b>ZTako</b>已连接你的 Mac</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="grid cols-3 devices-feats">
+      <div class="glass reveal"><h3>🔗 受控连接</h3><p class="lead" style="font-size:0.92rem">令牌认证的 MCP 传输，默认仅绑定本机回环地址。</p><span class="pill foundation">已验证基础</span></div>
+      <div class="glass reveal"><h3>👁 屏幕观察</h3><p class="lead" style="font-size:0.92rem">Mac 宿主端可以检查 iPhone 实时 UI 树。</p><span class="pill foundation">已验证基础</span></div>
+      <div class="glass reveal"><h3>🤝 任务接力</h3><p class="lead" style="font-size:0.92rem">跨设备上下文协作是规划方向 —— 手机不会被强制依赖一台持续在线的 Mac。</p><span class="pill vision">愿景</span></div>
+    </div>
+    <p class="fineprint">产品方向：<strong>每个用户的本地优先</strong>。现有已验证的连接能力与完整的跨设备智能协同是两回事，页面上分开标注。</p>
+  </div>
+</section>
+
+<!-- SECTION 06 — AI Keyboard -->
+<section id="keyboard">
+  <div class="wrap">
+    <span class="section-kicker">AI 输入法</span>
+    <h2>智能，就在<span class="grad">你输入的地方。</span></h2>
+    <p class="lead">一个研发方向：把理解、建议、翻译和快捷动作带进键盘本身 —— 不必为每件小事切换到单独的聊天 App。</p>
+    <div class="kb-stage">
+      <div class="glass">
+        <div class="kb-screen">
+          <span class="typed" id="kbTyped">把这段话翻译成英文，语气礼貌一些</span><span class="kb-caret" aria-hidden="true"></span>
+        </div>
+        <div class="candidate-bar" id="kbCands" role="group" aria-label="候选建议">
+          <button class="cand" data-text="Could you please help me translate this into polite English?" data-note="✦ 上下文建议：已在本地生成一份更礼貌的英文草稿（概念演示）。">✦ 礼貌英文草稿</button>
+          <button class="cand" data-text="Please translate this message into English." data-note="✦ 快捷动作：已应用直接翻译（概念演示）。">↔ 翻译</button>
+          <button class="cand" data-text="Here is a shorter version of your message." data-note="✦ 改写：在保留原意的前提下缩短了内容（概念演示）。">✂ 帮我缩短</button>
+        </div>
+        <div class="kb-actions" id="kbActs" role="group" aria-label="键盘快捷动作">
+          <button class="act" data-note="✦ 摘要：已提炼这组对话的要点（概念演示）。">总结对话</button>
+          <button class="act" data-note="✦ 解释：用通俗语言说明这个附件的类型与用途（概念演示）。">解释这个</button>
+          <button class="act" data-note="✦ 任务：「用友好的语气发给 Alice」将成为一个受授权约束的 Agent 任务（愿景）。">变成任务</button>
+        </div>
+        <p id="kbNote" class="concept-note" aria-live="polite">点击上方的候选建议或快捷动作 —— 这是键盘级智能的交互概念演示。</p>
+      </div>
+    </div>
+    <div class="grid cols-4">
+      <div class="glass reveal"><h3>智能候选栏</h3><span class="pill vision">愿景</span></div>
+      <div class="glass reveal"><h3>上下文建议</h3><span class="pill vision">愿景</span></div>
+      <div class="glass reveal"><h3>翻译辅助</h3><span class="pill development">开发中</span></div>
+      <div class="glass reveal"><h3>自然语言任务入口</h3><span class="pill vision">愿景</span></div>
+    </div>
+    <p class="fineprint">平台说明：键盘智能是跨平台探索的研发方向。Mac 端输入法实验是独立的工作流，不会被包装成已完成的 iPhone 输入法。以上状态描述的是方向，不是已完成的功能。</p>
+  </div>
+</section>
+
+<!-- SECTION 07 — AI Vision & Screenshot Intelligence -->
+<section id="vision">
+  <div class="wrap">
+    <span class="section-kicker">AI 视觉与截图智能</span>
+    <h2>让 AI 理解<br><span class="grad">你眼前的屏幕。</span></h2>
+    <p class="lead">截图里藏着各种问题：看不懂的报错、另一种语言的文字、想总结的页面。ZTako 的方向是一个能"看懂"你屏幕的 AI —— OCR、理解、诊断、翻译与总结。</p>
+    <div class="vision-grid">
+      <div class="shot" id="shot" aria-label="概念截图，含分析区域">
+        <div class="shot-bar"><span>9:41</span><span>WiFi · 87%</span></div>
+        <div class="shot-title"></div>
+        <div class="shot-line"></div>
+        <div class="shot-line short"></div>
+        <div class="shot-img"></div>
+        <div class="shot-line"></div>
+        <div class="shot-line short"></div>
+        <div class="region" style="top:18%;left:8%;width:70%;height:9%"><span class="tag">文字</span></div>
+        <div class="region" style="top:34%;left:8%;width:84%;height:36%"><span class="tag">图片</span></div>
+        <div class="region" style="top:74%;left:8%;width:84%;height:14%"><span class="tag">错误弹窗</span></div>
+      </div>
+      <div class="glass vision-panel" id="visionDemo" data-modes='{"analyze":"检测到 3 个区域：一个文字块、一个图片区域和一个错误弹窗。\n\n解释：弹窗提示 App 无法连接网络。常见原因包括：无网络连接、VPN 或代理干扰、服务端故障。建议第一步：检查 WiFi 后重试。","translate":"版面感知翻译会在保留原始布局的前提下，把屏幕上的文字渲染为你的语言（概念演示）。","summarize":"摘要：页面包含一个主内容区、一张图片和一个错误弹窗；需要处理的事项是网络错误（概念演示）。","find":"发现：一个错误弹窗和两个信息区块。弹窗中包含唯一需要处理的文字（概念演示）。","running":"分析中…"}'>
+        <div class="stages" id="visionStages" aria-live="polite">
+          <span class="stage-chip">检测</span>
+          <span class="stage-chip">识别</span>
+          <span class="stage-chip">理解</span>
+          <span class="stage-chip">解释</span>
+        </div>
+        <div class="vision-output" id="visionOutput">点击「分析屏幕」，体验概念流水线：检测区域 → 识别内容 → 理解含义 → 向你解释。</div>
+        <div class="vision-modes" id="visionModes" role="group" aria-label="分析模式">
+          <button data-mode="translate" aria-pressed="false">翻译</button>
+          <button data-mode="summarize" aria-pressed="false">总结</button>
+          <button data-mode="find" aria-pressed="false">查找信息</button>
+        </div>
+        <div class="btn-row" style="margin-top:1.4rem">
+          <button class="btn primary small" id="analyzeBtn">分析屏幕</button>
+        </div>
+        <p class="concept-note"><span class="pill concept">交互概念演示</span> 模拟截图与分阶段输出用于说明目标体验，并非真实设备上的 AI 推理结果。</p>
+      </div>
+    </div>
+    <div class="grid cols-3" style="margin-top:2.4rem">
+      <div class="glass reveal"><h3>🔤 OCR 文字识别</h3><span class="pill foundation">已验证基础</span></div>
+      <div class="glass reveal"><h3>❓ 截图 Ask AI</h3><span class="pill development">开发中</span></div>
+      <div class="glass reveal"><h3>🩺 错误诊断</h3><span class="pill development">开发中</span></div>
+      <div class="glass reveal"><h3>🌍 版面感知翻译</h3><span class="pill vision">愿景</span></div>
+      <div class="glass reveal"><h3>🖼 长截图与智能标注</h3><span class="pill vision">愿景</span></div>
+      <div class="glass reveal"><h3>🔗 截图与任务执行联动</h3><span class="pill vision">愿景</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 08 — Local AI + Cloud AI -->
+<section id="models">
+  <div class="wrap">
+    <span class="section-kicker">本地 AI + 云端 AI</span>
+    <h2>你的 AI，<br><span class="grad">由你选择。</span></h2>
+    <p class="lead">ZTako 的设计中，模型能力与执行权限是分离的，并逐步支持不同的模型供应商 —— 本地或云端。不锁定单一厂商，也不会自动上传你的私人内容。</p>
+    <div class="model-toggle" id="modelToggle" role="group" aria-label="模型模式">
+      <button data-panel="local" aria-pressed="true">本地优先</button>
+      <button data-panel="cloud" aria-pressed="false">云端模型</button>
+    </div>
+    <div class="grid cols-2 model-cards">
+      <div class="glass model-card reveal" data-card="local">
+        <h3>🖥 本地优先方向</h3>
+        <p class="lead" style="font-size:0.94rem">尽可能在你的设备上或设备附近完成理解。屏幕内容与个人数据默认留在你手里。</p>
+        <ul class="lead" style="font-size:0.9rem;margin-top:0.8rem">
+          <li>默认保护隐私</li>
+          <li>无需把内容发送给第三方</li>
+          <li>性能取决于本地硬件</li>
+        </ul>
+        <span class="pill development">开发中</span>
+      </div>
+      <div class="glass model-card reveal" data-card="cloud" hidden>
+        <h3>☁️ 云端模型</h3>
+        <p class="lead" style="font-size:0.94rem">当任务需要更强能力时使用云端模型 —— 由你选择，并对哪些内容离开设备设置清晰边界。</p>
+        <ul class="lead" style="font-size:0.9rem;margin-top:0.8rem">
+          <li>复杂推理质量更高</li>
+          <li>供应商由你选择，而非强制</li>
+          <li>对私人内容设置显式边界</li>
+        </ul>
+        <span class="pill development">开发中</span>
+      </div>
+    </div>
+    <p class="fineprint"><strong>质量优先，本地优先。</strong>并非所有规划中的模型接入都已在 iOS 17 参考设备上完成验收；模型能力与执行权限始终是分离的两套系统。</p>
+  </div>
+</section>
+
+<!-- SECTION 09 — Why Jailbreak Matters -->
+<section id="jailbreak">
+  <div class="wrap">
+    <span class="section-kicker">越狱为何重要</span>
+    <h2>更深的设备控制，<br>带来<span class="grad">更多智能可能。</span></h2>
+    <p class="lead">普通 iOS 应用受系统沙盒严格限制。越狱研究环境则可以合理探索更深的系统层面供 AI Agent 使用 —— 始终处于真实权限与兼容性边界之内。</p>
+    <div class="jb-grid">
+      <div class="glass reveal"><h3>👁 系统观察</h3><span class="pill foundation">已验证基础</span></div>
+      <div class="glass reveal"><h3>♿ 无障碍树</h3><span class="pill foundation">已验证基础</span></div>
+      <div class="glass reveal"><h3>👆 真实设备交互</h3><span class="pill foundation">已验证基础</span></div>
+      <div class="glass reveal"><h3>📱 App 生命周期控制</h3><span class="pill foundation">已验证基础</span></div>
+      <div class="glass reveal"><h3>🧩 进程与服务管理</h3><span class="pill development">开发中</span></div>
+      <div class="glass reveal"><h3>🗂 文件与诊断</h3><span class="pill development">开发中</span></div>
+      <div class="glass reveal"><h3>🔌 MCP 设备控制</h3><span class="pill foundation">已验证基础</span></div>
+      <div class="glass reveal"><h3>📦 软件包分析</h3><span class="pill development">开发中</span></div>
+      <div class="glass reveal"><h3>⚙️ 自动化与插件</h3><span class="pill vision">愿景</span></div>
+    </div>
+    <div class="jb-quote reveal">"下一代手机 AI，不应该只属于货架上最新的手机。"</div>
+    <div class="trust-line">
+      <span class="pill vision">AI 可以提议操作，决定权始终在你手中。</span>
+    </div>
+    <p class="fineprint" style="text-align:center">越狱扩大了技术上可触达的范围 —— 不代表所有操作都能无条件执行。ZTako 保留真实的授权边界；详细说明见项目安全文档。</p>
+  </div>
+</section>
+
+<!-- SECTION 10 — One Agent. Many Entry Points. -->
+<section id="entries">
+  <div class="wrap">
+    <span class="section-kicker">一个 Agent，多个入口</span>
+    <h2>一个智能核心，<br><span class="grad">连接你需要的一切入口。</span></h2>
+    <p class="lead">不应该每换一个入口就换一个 AI。文字、语音、截图、键盘、Mac —— 目标是让每个入口都连接到同一个受授权约束的个人 Agent 运行环境。</p>
+    <div class="entries-grid">
+      <div class="glass entry-card reveal"><span class="ico" aria-hidden="true">💬</span><b>文字对话</b><span class="pill foundation">已验证基础</span></div>
+      <div class="glass entry-card reveal"><span class="ico" aria-hidden="true">🖥</span><b>Mac 连接</b><span class="pill foundation">已验证基础</span></div>
+      <div class="glass entry-card reveal"><span class="ico" aria-hidden="true">📸</span><b>截图</b><span class="pill development">开发中</span></div>
+      <div class="glass entry-card reveal"><span class="ico" aria-hidden="true">⌨️</span><b>AI 输入法</b><span class="pill vision">愿景</span></div>
+      <div class="glass entry-card reveal"><span class="ico" aria-hidden="true">🎙</span><b>语音</b><span class="pill vision">愿景</span></div>
+      <div class="glass entry-card reveal"><span class="ico" aria-hidden="true">🪟</span><b>浮动助手</b><span class="pill vision">愿景</span></div>
+      <div class="glass entry-card reveal"><span class="ico" aria-hidden="true">🤖</span><b>ChatGPT</b><span class="pill vision">愿景</span></div>
+      <div class="glass entry-card reveal"><span class="ico" aria-hidden="true">⚡</span><b>快捷指令</b><span class="pill vision">愿景</span></div>
+      <div class="glass entry-card reveal"><span class="ico" aria-hidden="true">🔘</span><b>Action Button</b><span class="pill vision">愿景</span></div>
+      <div class="glass entry-card reveal"><span class="ico" aria-hidden="true">🔊</span><b>Siri</b><span class="pill vision">愿景</span></div>
+    </div>
+    <p class="entry-core">每个入口 → 同一个受授权约束的 Agent 运行环境 → 同一份对你的偏好记忆。</p>
+  </div>
+</section>
+
+<!-- SECTION 11 — Real Engineering, Open Source -->
+<section id="engineering">
+  <div class="wrap">
+    <span class="section-kicker">真实工程，开源共建</span>
+    <h2>不只是<span class="grad">又一个 AI 概念。</span></h2>
+    <p class="lead">ZTako 之下是真实、已公开的工程基础：用 Theos 为越狱 iPhone 构建的 Objective-C iOS MCP 设备服务端、Python 受控宿主 Agent 运行环境，以及每次变更都会在 CI 中运行的离线测试套件。</p>
+    <div class="eng-facts">
+      <div class="fact reveal"><div class="num">70/70</div><div class="lbl">公开离线宿主测试在最近一次已验证 CI 运行中全部通过（2026-10-02，提交 98b965e）</div></div>
+      <div class="fact reveal"><div class="num">3</div><div class="lbl">越狱构建方案：rootful、rootless、RootHide</div></div>
+      <div class="fact reveal"><div class="num">20+</div><div class="lbl">已公开源码中的设备 MCP 工具：点击、滑动、截图、OCR、UI 树、App 与软件包管理……</div></div>
+      <div class="fact reveal"><div class="num">100%</div><div class="lbl">公开测试套件完全离线运行 —— 无需设备、无需凭据</div></div>
+    </div>
+    <div class="stack-badges">
+      <span>iOS MCP Server</span><span>Objective-C</span><span>Theos</span><span>RootHide</span><span>ElleKit</span>
+      <span>Accessibility</span><span>设备观察</span><span>受控执行</span><span>宿主测试</span><span>GitHub Actions CI</span><span>Apache-2.0</span>
+    </div>
+    <div class="grid cols-3">
+      <div class="glass reveal"><h3>🌱 开源</h3><p class="lead" style="font-size:0.92rem">源码以 Apache-2.0 发布，附带安全、依赖与贡献文档。</p></div>
+      <div class="glass reveal"><h3>🔬 为真实 iOS 研究而生</h3><p class="lead" style="font-size:0.92rem">参考环境：iPhone 15 Pro · iOS 17.0 · RootHide + ElleKit —— 如实记录，不过度宣称。</p></div>
+      <div class="glass reveal"><h3>🧪 透明的验证</h3><p class="lead" style="font-size:0.92rem">CI 在每次推送时运行公开测试套件。历史数字始终与其验证时点绑定。</p></div>
+    </div>
+    <p class="fineprint">70/70 是所引用提交时点的公开宿主测试结果 —— 属于历史基线，不代表未发布代码的状态。本站不编造任何下载量、Star、用户数、客户评价或成功率。</p>
+  </div>
+</section>
+
+<!-- SECTION 12 — Roadmap -->
+<section id="roadmap">
+  <div class="wrap">
+    <span class="section-kicker">路线图与下一步</span>
+    <h2>迈向<br><span class="grad">个人 AI 操作系统。</span></h2>
+    <p class="lead">六个阶段，按序推进，每一步为下一步铺路。详细技术里程碑见项目路线图文档。</p>
+    <div class="timeline">
+      <div class="tl-item done"><b>基础</b><p>受控 Agent 运行环境、安全边界、离线测试套件、CI。✅ 已发布。</p></div>
+      <div class="tl-item now"><b>设备智能</b><p>对真实设备的深度观察：无障碍、屏幕、App、文件、进程。🔄 进行中。</p></div>
+      <div class="tl-item"><b>行动与验证</b><p>带语义验证与恢复的受控执行 —— 先行动，再确认真实发生了什么。</p></div>
+      <div class="tl-item"><b>个人 AI</b><p>记忆、偏好与技能为操作提供参考 —— 但永远不授权操作。</p></div>
+      <div class="tl-item"><b>互联体验</b><p>iPhone × Mac 协作、键盘与语音入口、跨设备连续体验。</p></div>
+      <div class="tl-item"><b>Agent OS</b><p>属于你选择保留的那台 iPhone 的个人 AI 操作层。</p></div>
+    </div>
+    <div class="btn-row">
+      <a class="btn ghost" href="https://github.com/ZBC123067/PhoneHarness-iOS-Agent/blob/main/docs/roadmap.md" target="_blank" rel="noopener">阅读技术路线图</a>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 13 — Final CTA -->
+<section class="final" id="cta">
+  <div class="wrap">
+    <span class="section-kicker">加入这段旅程</span>
+    <h2>你的 iPhone，<br><span class="grad">未来仍有无限可能。</span></h2>
+    <p class="lead" style="margin:1rem auto 0;max-width:40rem">ZTako 正在探索一条通向智能移动计算的另一条路。了解这个项目，关注这段旅程，一起塑造接下来的一切。</p>
+    <div class="btn-row" style="justify-content:center">
+      <a class="btn primary" href="https://github.com/ZBC123067/PhoneHarness-iOS-Agent" target="_blank" rel="noopener">前往 GitHub</a>
+      <a class="btn ghost" href="#roadmap">查看路线图</a>
+      <a class="btn ghost" href="https://github.com/ZBC123067/PhoneHarness-iOS-Agent/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener">参与贡献</a>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="footer-inner">
+    <div>
+      <strong>ZTako</strong> —— 你的 iPhone，你的 AI，你的掌控。<br>
+      基于 Apache License 2.0 开源。本站描述的是一个积极研发中的项目；产品方向均标注为愿景，而非已上线功能。
+    </div>
+    <div class="footer-links">
+      <a href="https://github.com/ZBC123067/PhoneHarness-iOS-Agent" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://github.com/ZBC123067/PhoneHarness-iOS-Agent/blob/main/README.zh-CN.md" target="_blank" rel="noopener">README</a>
+      <a href="https://github.com/ZBC123067/PhoneHarness-iOS-Agent/blob/main/SECURITY.md" target="_blank" rel="noopener">安全</a>
+      <a href="https://github.com/ZBC123067/PhoneHarness-iOS-Agent/blob/main/docs/roadmap.md" target="_blank" rel="noopener">路线图</a>
+      <a href="../en/">English</a>
+    </div>
+  </div>
+</footer>
+
+<script src="../assets/site.js" defer></script>
+<script>
+  // 语言切换时保留用户当前所在的章节锚点。
+  (function () {
+    var h = window.location.hash;
+    if (!h) return;
+    document.querySelectorAll(".lang-switch a[data-lang]").forEach(function (a) {
+      a.setAttribute("href", a.getAttribute("href").split("#")[0] + h);
+    });
+  })();
+</script>
+</body>
+</html>

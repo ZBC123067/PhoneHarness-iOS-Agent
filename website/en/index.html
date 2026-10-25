@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZTako — The AI future shouldn't leave your iPhone behind</title>
+<meta name="description" content="ZTako is an open-source personal AI agent exploring next-generation intelligent iPhone automation for jailbreak-capable devices. Your iPhone. Your AI. Your Control.">
+<link rel="canonical" href="https://zbc123067.github.io/PhoneHarness-iOS-Agent/en/">
+<link rel="alternate" hreflang="en" href="https://zbc123067.github.io/PhoneHarness-iOS-Agent/en/">
+<link rel="alternate" hreflang="zh-CN" href="https://zbc123067.github.io/PhoneHarness-iOS-Agent/zh-CN/">
+<link rel="alternate" hreflang="x-default" href="https://zbc123067.github.io/PhoneHarness-iOS-Agent/">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%236c8cff'/%3E%3Cstop offset='1' stop-color='%23a06bff'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='14' fill='%2305070f'/%3E%3Ctext x='32' y='44' font-family='Arial,sans-serif' font-size='34' font-weight='800' fill='url(%23g)' text-anchor='middle'%3EZ%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body class="en">
+<div class="aurora" aria-hidden="true"></div>
+
+<header class="site-header">
+  <div class="header-inner">
+    <a class="brand" href="#hero" aria-label="ZTako home">
+      <svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="14" fill="rgba(108,140,255,0.15)"/><text x="32" y="44" font-family="Arial,sans-serif" font-size="34" font-weight="800" fill="#8fa5ff" text-anchor="middle">Z</text></svg>
+      ZTako
+    </a>
+    <nav class="main-nav" aria-label="Main">
+      <a href="#gap">The Gap</a>
+      <a href="#action">Action</a>
+      <a href="#jarvis">Jarvis</a>
+      <a href="#devices">iPhone × Mac</a>
+      <a href="#vision">Vision</a>
+      <a href="#engineering">Open Source</a>
+      <a href="#roadmap">Roadmap</a>
+      <span class="lang-switch">
+        <a href="./" data-lang="en" aria-current="true">English</a>
+        <a href="../zh-CN/" data-lang="zh-CN">简体中文</a>
+      </span>
+    </nav>
+  </div>
+</header>
+
+<main>
+<!-- SECTION 01 — Hero -->
+<section class="hero" id="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <span class="pill foundation">Open Source · Actively Developed</span>
+      <h1>The AI future shouldn't <span class="grad">leave your iPhone behind.</span></h1>
+      <p class="sub"><strong>Meet ZTako.</strong> An open-source personal AI agent exploring the next generation of intelligent iPhone automation for jailbreak-capable devices.</p>
+      <span class="hero-tagline">Built for the iPhone you already own.</span>
+      <div class="btn-row">
+        <a class="btn primary" href="#action">Explore the Experience</a>
+        <a class="btn ghost" href="https://github.com/ZBC123067/PhoneHarness-iOS-Agent" target="_blank" rel="noopener">View on GitHub</a>
+      </div>
+      <p class="fineprint">Your iPhone. Your AI. Your Control. · Not another chatbot — an agent that works with your device.</p>
+    </div>
+    <div class="phone-wrap reveal">
+      <div class="phone" aria-hidden="true">
+        <div class="notch"></div>
+        <div class="screen">
+          <div class="app-dot" style="top:14%;left:12%"></div>
+          <div class="app-dot" style="top:14%;left:44%"></div>
+          <div class="app-dot" style="top:14%;right:12%"></div>
+          <div class="halo"></div>
+          <div class="wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          <div class="action-ghost" id="heroGhost" style="top:58%;left:38%"></div>
+          <div class="task-card"><b>ZTako Agent</b><span id="heroCardStatus">Observing screen…</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="wrap" style="margin-top:3rem">
+    <div class="glass task-console">
+      <div class="window-dots" aria-hidden="true"><span></span><span></span><span></span></div>
+      <div class="task-input">
+        <span aria-hidden="true">›</span>
+        <span id="heroTask" data-tasks='["Open the browser, search this, and summarize the results for me.","Find the file I downloaded and draft an email with it.","Check this page and tell me what looks wrong.","Open this app and change that setting for me."]'></span>
+        <span class="caret" aria-hidden="true"></span>
+      </div>
+      <div class="agent-status" id="heroChips" aria-live="polite">
+        <span class="chip">Observe</span>
+        <span class="chip">Understand</span>
+        <span class="chip">Plan</span>
+        <span class="chip">Authorize</span>
+        <span class="chip">Act</span>
+        <span class="chip">Verify</span>
+      </div>
+      <p class="concept-note"><span class="pill concept">Interactive Concept</span> A vision of one-sentence task execution. The animation is a demonstration, not a live device connection.</p>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 02 — The Missing AI Experience -->
+<section id="gap">
+  <div class="wrap">
+    <span class="section-kicker">The AI Experience Gap</span>
+    <h2>New AI phones are arriving.<br>What about the iPhones <span class="grad">left behind?</span></h2>
+    <p class="lead">Across the industry, phones are turning into AI assistants: understanding natural language, reading the screen, and completing tasks. But none of that automatically reaches the iPhones that stay on older iOS.</p>
+    <div class="gap-compare">
+      <div class="glass gap-col new reveal">
+        <h3>The new AI phone wave</h3>
+        <ul>
+          <li>Apple Intelligence</li>
+          <li>Galaxy AI</li>
+          <li>Doubao Phone Assistant</li>
+          <li>nubia AI</li>
+        </ul>
+        <p class="col-note">New hardware and new system versions, marketed as the future of the smartphone.</p>
+      </div>
+      <div class="gap-mid" aria-hidden="true">
+        <span class="bolt">⚡</span>
+        <span>The AI<br>Experience<br>Gap</span>
+      </div>
+      <div class="glass gap-col legacy reveal">
+        <h3>iPhones that stay behind — on purpose</h3>
+        <ul>
+          <li>iOS 17 and older</li>
+          <li>RootHide</li>
+          <li>TrollStore</li>
+          <li>ElleKit &amp; tweaks</li>
+          <li>Deep customization</li>
+        </ul>
+        <p class="col-note">Users who keep their environment for jailbreak ecosystems, compatibility, and control.</p>
+      </div>
+    </div>
+    <div class="ztako-path reveal">
+      <p class="ztako-name grad">ZTako explores a new path.</p>
+      <p class="lead" style="margin:0.8rem auto 0;max-width:44rem">Rather than forcing users to abandon the environment they chose, ZTako explores how a modern AI agent can work with the iPhone they already control — combining jailbreak-grade device access with modern AI models.</p>
+      <p class="fineprint">Apple Intelligence, Galaxy AI, Doubao and nubia AI are mentioned as public industry background only. No affiliation, endorsement or feature-equivalence is claimed, and no official logos are used.</p>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 03 — One Instruction. Real Action. -->
+<section id="action">
+  <div class="wrap">
+    <span class="section-kicker">One Instruction. Real Action.</span>
+    <h2>Stop telling your phone where to tap.<br>Tell it <span class="grad">what you want to achieve.</span></h2>
+    <p class="lead">ZTako is not just a Q&amp;A chatbot. The goal: you describe the outcome, and the agent observes the screen, understands the UI, plans the steps, asks for authorization where needed, acts, then checks what actually happened.</p>
+    <div class="pipeline" id="pipeline" role="group" aria-label="Agent task pipeline (interactive concept)">
+      <div class="step" tabindex="0" aria-pressed="false"><span class="n">1</span><b>Natural language</b><span>You state the goal</span></div>
+      <div class="step" tabindex="0" aria-pressed="false"><span class="n">2</span><b>Understand task</b><span>Parse intent &amp; constraints</span></div>
+      <div class="step" tabindex="0" aria-pressed="false"><span class="n">3</span><b>Observe screen</b><span>Read the live UI</span></div>
+      <div class="step" tabindex="0" aria-pressed="false"><span class="n">4</span><b>Identify elements</b><span>Apps &amp; controls, not pixels</span></div>
+      <div class="step" tabindex="0" aria-pressed="false"><span class="n">5</span><b>Plan steps</b><span>Break the goal into actions</span></div>
+      <div class="step" tabindex="0" aria-pressed="false"><span class="n">6</span><b>Authorize</b><span>You approve sensitive actions</span></div>
+      <div class="step" tabindex="0" aria-pressed="false"><span class="n">7</span><b>Execute</b><span>Tap, swipe, type, launch</span></div>
+      <div class="step" tabindex="0" aria-pressed="false"><span class="n">8</span><b>Re-observe</b><span>Look at the screen again</span></div>
+      <div class="step" tabindex="0" aria-pressed="false"><span class="n">9</span><b>Verify result</b><span>Confirm the real outcome</span></div>
+    </div>
+    <p class="concept-note"><span class="pill concept">Interactive Concept</span> Click any step. The device-control primitives behind this loop (tap, swipe, input, screenshots, OCR, accessibility tree reading) exist today as ZTako's open MCP foundation; the full one-sentence autonomous chain is a development direction.</p>
+    <div class="scenario-list">
+      <div class="scenario reveal">
+        <p class="q">"Open the browser, search this, and organize the results for me."</p>
+        <span class="tier pill vision">Future Experience Concept</span>
+      </div>
+      <div class="scenario reveal">
+        <p class="q">"Find the file I just downloaded and help me draft an email."</p>
+        <span class="tier pill vision">Future Experience Concept</span>
+      </div>
+      <div class="scenario reveal">
+        <p class="q">"Look at this page and tell me what's wrong and how to handle it."</p>
+        <span class="tier pill vision">Future Experience Concept</span>
+      </div>
+      <div class="scenario reveal">
+        <p class="q">"Open this app, find that setting, and change it for me."</p>
+        <span class="tier pill vision">Future Experience Concept</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 04 — Meet Your Personal Jarvis -->
+<section id="jarvis">
+  <div class="wrap">
+    <span class="section-kicker">Meet Your Personal Jarvis</span>
+    <h2>Your own Jarvis.<br>Built around <span class="grad">your iPhone.</span></h2>
+    <p class="lead">The long-term vision: a assistant that listens, keeps task context across apps, plans and executes intelligently, reports back honestly, and learns your preferences over time.</p>
+    <div class="grid cols-3">
+      <div class="glass reveal"><h3>🎙 Voice interaction</h3><p class="lead" style="font-size:0.92rem">Speak naturally instead of tapping through menus.</p><span class="pill vision">Vision</span></div>
+      <div class="glass reveal"><h3>🧭 Cross-app tasks</h3><p class="lead" style="font-size:0.92rem">One goal can span several apps and system services.</p><span class="pill vision">Vision</span></div>
+      <div class="glass reveal"><h3>📌 Task context</h3><p class="lead" style="font-size:0.92rem">Ongoing tasks keep their state and can resume.</p><span class="pill development">In Development</span></div>
+      <div class="glass reveal"><h3>🪄 Smart planning</h3><p class="lead" style="font-size:0.92rem">Plans are proposals — verified before and after execution.</p><span class="pill foundation">Available Foundation</span></div>
+      <div class="glass reveal"><h3>🔎 Honest feedback</h3><p class="lead" style="font-size:0.92rem">Results are verified against the real screen, not assumed.</p><span class="pill foundation">Available Foundation</span></div>
+      <div class="glass reveal"><h3>🧠 Memory &amp; skills</h3><p class="lead" style="font-size:0.92rem">Personal knowledge informs — but never authorizes — actions.</p><span class="pill development">In Development</span></div>
+    </div>
+    <p class="fineprint">A complete always-listening Jarvis voice assistant with fully autonomous task execution is a staged product direction, not a current production feature. ZTako does not perform unattended privileged actions without explicit authorization boundaries.</p>
+  </div>
+</section>
+
+<!-- SECTION 05 — iPhone × Mac -->
+<section id="devices">
+  <div class="wrap">
+    <span class="section-kicker">iPhone × Mac</span>
+    <h2>Two devices.<br>One <span class="grad">connected intelligence.</span></h2>
+    <p class="lead">What sets ZTako apart from a phone-only chat assistant: your Mac can observe, assist, and drive the iPhone over a controlled connection — today for development and testing, tomorrow as a foundation for task handoff.</p>
+    <div class="devices-stage">
+      <div class="devices-row">
+        <div class="macbook reveal" aria-hidden="true">
+          <div class="mb-screen">
+            <div class="line">ztako@mac ~ % agent connect --device iphone</div>
+            <div class="line" style="color:#8ff0c8">✓ device linked · MCP session active</div>
+            <div class="line">&gt; describe_screen --frontmost</div>
+            <div class="line" style="color:#9cc4ff">→ 24 elements · app: SpringBoard</div>
+            <div class="line">&gt; <span class="cursor"></span></div>
+          </div>
+          <div class="mb-base"></div>
+        </div>
+        <div class="link-col">
+          <div class="link-beam" aria-hidden="true">
+            <div class="track"></div>
+            <div class="pulse"></div>
+            <div class="pulse back"></div>
+          </div>
+          <div class="link-label" id="linkLabel" data-phases='[["Device link","Controlled MCP transport, token-authenticated"],["Screen observation","The Mac can read the live iPhone UI state"],["Command &amp; status","Queries and governed commands flow both ways"],["Future: task handoff","Start on Mac, continue on iPhone — planned"]]'><b>Device link</b>Controlled MCP transport, token-authenticated</div>
+        </div>
+        <div class="phone-wrap reveal">
+          <div class="phone" style="width:180px;height:370px" aria-hidden="true">
+            <div class="notch" style="width:56px;height:15px"></div>
+            <div class="screen">
+              <div class="halo" style="width:70px;height:70px"></div>
+              <div class="task-card" style="font-size:0.62rem"><b>ZTako</b>Linked to your Mac</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="grid cols-3 devices-feats">
+      <div class="glass reveal"><h3>🔗 Controlled connection</h3><p class="lead" style="font-size:0.92rem">Token-authenticated MCP transport, loopback by default.</p><span class="pill foundation">Available Foundation</span></div>
+      <div class="glass reveal"><h3>👁 Screen observation</h3><p class="lead" style="font-size:0.92rem">The Mac host can inspect the iPhone's live UI tree.</p><span class="pill foundation">Available Foundation</span></div>
+      <div class="glass reveal"><h3>🤝 Task handoff</h3><p class="lead" style="font-size:0.92rem">Cross-device context collaboration is a planned direction — the phone will not require a permanently online Mac.</p><span class="pill vision">Vision</span></div>
+    </div>
+    <p class="fineprint">Direction: <strong>local-first per user</strong>. Existing verified connection tooling and the full cross-device intelligence experience are separate things and are labeled separately.</p>
+  </div>
+</section>
+
+<!-- SECTION 06 — AI Keyboard -->
+<section id="keyboard">
+  <div class="wrap">
+    <span class="section-kicker">AI Keyboard</span>
+    <h2>Intelligence,<br>right <span class="grad">where you type.</span></h2>
+    <p class="lead">A research direction: bring understanding, suggestions, translation and quick actions into the keyboard itself — so you don't have to switch to a separate chat app for every small task.</p>
+    <div class="kb-stage">
+      <div class="glass">
+        <div class="kb-screen">
+          <span class="typed" id="kbTyped">把这段话翻译成英文，语气礼貌一些</span><span class="kb-caret" aria-hidden="true"></span>
+        </div>
+        <div class="candidate-bar" id="kbCands" role="group" aria-label="Candidate suggestions">
+          <button class="cand" data-text="Could you please help me translate this into polite English?" data-note="✦ Context suggestion: a polished, polite English draft was generated locally as a concept.">✦ Polite English draft</button>
+          <button class="cand" data-text="Please translate this message into English." data-note="✦ Quick action: direct translation applied (concept demo).">↔ Translate</button>
+          <button class="cand" data-text="Here is a shorter version of your message." data-note="✦ Rewrite: shortened while keeping the meaning (concept demo).">✂ Make it shorter</button>
+        </div>
+        <div class="kb-actions" id="kbActs" role="group" aria-label="Keyboard quick actions">
+          <button class="act" data-note="✦ Summarize: key points extracted from the thread (concept demo).">Summarize thread</button>
+          <button class="act" data-note="✦ Explain: this attachment type is described in plain language (concept demo).">Explain this</button>
+          <button class="act" data-note="✦ Task: 'send this to Alice with a friendly tone' would become a governed agent task (vision).">Turn into task</button>
+        </div>
+        <p id="kbNote" class="concept-note" aria-live="polite">Tap a suggestion or quick action above — this is an interactive concept of keyboard-level intelligence.</p>
+      </div>
+    </div>
+    <div class="grid cols-4">
+      <div class="glass reveal"><h3>Smart candidates</h3><span class="pill vision">Vision</span></div>
+      <div class="glass reveal"><h3>Context suggestions</h3><span class="pill vision">Vision</span></div>
+      <div class="glass reveal"><h3>Translation assist</h3><span class="pill development">In Development</span></div>
+      <div class="glass reveal"><h3>Natural-language task entry</h3><span class="pill vision">Vision</span></div>
+    </div>
+    <p class="fineprint">Platform note: keyboard intelligence is a research direction explored across platforms. A Mac-side input-method experiment is a separate workflow and is not presented as a shipped iPhone keyboard. Statuses above describe intent, not finished features.</p>
+  </div>
+</section>
+
+<!-- SECTION 07 — AI Vision & Screenshot Intelligence -->
+<section id="vision">
+  <div class="wrap">
+    <span class="section-kicker">AI Vision &amp; Screenshot Intelligence</span>
+    <h2>Your AI can learn to see<br><span class="grad">what you see.</span></h2>
+    <p class="lead">Screenshots are where questions live: an error you don't understand, text in another language, a page you want summarized. ZTako's direction is an AI that looks at your screen and helps — OCR, understanding, diagnosis, translation and summaries.</p>
+    <div class="vision-grid">
+      <div class="shot" id="shot" aria-label="Concept screenshot with analysis regions">
+        <div class="shot-bar"><span>9:41</span><span>WiFi · 87%</span></div>
+        <div class="shot-title"></div>
+        <div class="shot-line"></div>
+        <div class="shot-line short"></div>
+        <div class="shot-img"></div>
+        <div class="shot-line"></div>
+        <div class="shot-line short"></div>
+        <div class="region" style="top:18%;left:8%;width:70%;height:9%"><span class="tag">TEXT</span></div>
+        <div class="region" style="top:34%;left:8%;width:84%;height:36%"><span class="tag">IMAGE</span></div>
+        <div class="region" style="top:74%;left:8%;width:84%;height:14%"><span class="tag">ERROR DIALOG</span></div>
+      </div>
+      <div class="glass vision-panel" id="visionDemo" data-modes='{"analyze":"Detected 3 regions: a text block, an image area, and an error dialog.\n\nExplanation: the dialog suggests the app could not reach the network. Common causes: no connectivity, a VPN or proxy, or a server-side issue. First step: check WiFi and retry.","translate":"Layout-aware translation would render the on-screen text in your language while keeping the layout intact (concept).","summarize":"Summary: the page presents one main section with an image and an error dialog; the actionable item is the network error (concept).","find":"Findings: one error dialog and two informational blocks found. The dialog contains the only actionable text (concept).","running":"Analyzing…"}'>
+        <div class="stages" id="visionStages" aria-live="polite">
+          <span class="stage-chip">Detect</span>
+          <span class="stage-chip">Recognize</span>
+          <span class="stage-chip">Understand</span>
+          <span class="stage-chip">Explain</span>
+        </div>
+        <div class="vision-output" id="visionOutput">Press “Analyze Screen” to walk through the concept pipeline: detect regions, recognize content, understand meaning, then explain it back to you.</div>
+        <div class="vision-modes" id="visionModes" role="group" aria-label="Analysis modes">
+          <button data-mode="translate" aria-pressed="false">Translate</button>
+          <button data-mode="summarize" aria-pressed="false">Summarize</button>
+          <button data-mode="find" aria-pressed="false">Find Information</button>
+        </div>
+        <div class="btn-row" style="margin-top:1.4rem">
+          <button class="btn primary small" id="analyzeBtn">Analyze Screen</button>
+        </div>
+        <p class="concept-note"><span class="pill concept">Interactive Concept</span> The mock screenshot and staged output are an illustration of the intended experience, not live on-device AI inference.</p>
+      </div>
+    </div>
+    <div class="grid cols-3" style="margin-top:2.4rem">
+      <div class="glass reveal"><h3>🔤 OCR text recognition</h3><span class="pill foundation">Available Foundation</span></div>
+      <div class="glass reveal"><h3>❓ Ask AI about a screenshot</h3><span class="pill development">In Development</span></div>
+      <div class="glass reveal"><h3>🩺 Error diagnosis</h3><span class="pill development">In Development</span></div>
+      <div class="glass reveal"><h3>🌍 Layout-aware translation</h3><span class="pill vision">Vision</span></div>
+      <div class="glass reveal"><h3>🖼 Long screenshots &amp; annotation</h3><span class="pill vision">Vision</span></div>
+      <div class="glass reveal"><h3>🔗 Screenshots linked to tasks</h3><span class="pill vision">Vision</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 08 — Local AI + Cloud AI -->
+<section id="models">
+  <div class="wrap">
+    <span class="section-kicker">Local AI + Cloud AI</span>
+    <h2>Your intelligence.<br><span class="grad">Your choice.</span></h2>
+    <p class="lead">ZTako is designed to separate model capability from execution authority, and to support different model providers over time — local or cloud. No single vendor lock-in, and no automatic upload of your private content.</p>
+    <div class="model-toggle" id="modelToggle" role="group" aria-label="Model mode">
+      <button data-panel="local" aria-pressed="true">Local-first</button>
+      <button data-panel="cloud" aria-pressed="false">Cloud models</button>
+    </div>
+    <div class="grid cols-2 model-cards">
+      <div class="glass model-card reveal" data-card="local">
+        <h3>🖥 Local-first direction</h3>
+        <p class="lead" style="font-size:0.94rem">Run understanding on or near your own device where possible. Your screen content and personal data stay with you by default.</p>
+        <ul class="lead" style="font-size:0.9rem;margin-top:0.8rem">
+          <li>Privacy by default</li>
+          <li>Works without sending content to third parties</li>
+          <li>Performance depends on local hardware</li>
+        </ul>
+        <span class="pill development">In Development</span>
+      </div>
+      <div class="glass model-card reveal" data-card="cloud" hidden>
+        <h3>☁️ Cloud models</h3>
+        <p class="lead" style="font-size:0.94rem">Use stronger cloud models when a task needs them — chosen by you, with clear boundaries on what leaves the device.</p>
+        <ul class="lead" style="font-size:0.9rem;margin-top:0.8rem">
+          <li>Highest quality for complex reasoning</li>
+          <li>Your choice of provider, not a mandate</li>
+          <li>Explicit boundaries for private content</li>
+        </ul>
+        <span class="pill development">In Development</span>
+      </div>
+    </div>
+    <p class="fineprint"><strong>Quality First. Local Preferred.</strong> Not all planned model integrations have been validated on the iOS 17 reference device yet; model capability and execution permission remain separate systems.</p>
+  </div>
+</section>
+
+<!-- SECTION 09 — Why Jailbreak Matters -->
+<section id="jailbreak">
+  <div class="wrap">
+    <span class="section-kicker">Why Jailbreak Matters</span>
+    <h2>More control.<br><span class="grad">More possibilities.</span></h2>
+    <p class="lead">Ordinary iOS apps live in a strict sandbox. A jailbreak research environment legitimately unlocks deeper surfaces that an AI agent can use — always inside real permission and compatibility limits.</p>
+    <div class="jb-grid">
+      <div class="glass reveal"><h3>👁 System observation</h3><span class="pill foundation">Available Foundation</span></div>
+      <div class="glass reveal"><h3>♿ Accessibility tree</h3><span class="pill foundation">Available Foundation</span></div>
+      <div class="glass reveal"><h3>👆 Real device interaction</h3><span class="pill foundation">Available Foundation</span></div>
+      <div class="glass reveal"><h3>📱 App lifecycle control</h3><span class="pill foundation">Available Foundation</span></div>
+      <div class="glass reveal"><h3>🧩 Process &amp; service management</h3><span class="pill development">In Development</span></div>
+      <div class="glass reveal"><h3>🗂 Files &amp; diagnostics</h3><span class="pill development">In Development</span></div>
+      <div class="glass reveal"><h3>🔌 MCP device control</h3><span class="pill foundation">Available Foundation</span></div>
+      <div class="glass reveal"><h3>📦 Package analysis</h3><span class="pill development">In Development</span></div>
+      <div class="glass reveal"><h3>⚙️ Automation &amp; plugins</h3><span class="pill vision">Vision</span></div>
+    </div>
+    <div class="jb-quote reveal">"The next generation of mobile AI should not be limited to the newest phone on the shelf."</div>
+    <div class="trust-line">
+      <span class="pill vision">AI can propose actions. You remain in control.</span>
+    </div>
+    <p class="fineprint" style="text-align:center">Jailbreak expands what is technically accessible — it does not make every action unrestricted. ZTako keeps real authorization boundaries; details live in the project's security documentation.</p>
+  </div>
+</section>
+
+<!-- SECTION 10 — One Agent. Many Entry Points. -->
+<section id="entries">
+  <div class="wrap">
+    <span class="section-kicker">One Agent. Many Entry Points.</span>
+    <h2>One intelligence.<br><span class="grad">Everywhere you need it.</span></h2>
+    <p class="lead">You shouldn't need a different AI for every doorway. Text, voice, screenshots, your keyboard, your Mac — the plan is that every entry point connects to the same governed personal agent runtime.</p>
+    <div class="entries-grid">
+      <div class="glass entry-card reveal"><span class="ico" aria-hidden="true">💬</span><b>Text chat</b><span class="pill foundation">Available Foundation</span></div>
+      <div class="glass entry-card reveal"><span class="ico" aria-hidden="true">🖥</span><b>Mac connection</b><span class="pill foundation">Available Foundation</span></div>
+      <div class="glass entry-card reveal"><span class="ico" aria-hidden="true">📸</span><b>Screenshot</b><span class="pill development">In Development</span></div>
+      <div class="glass entry-card reveal"><span class="ico" aria-hidden="true">⌨️</span><b>AI keyboard</b><span class="pill vision">Vision</span></div>
+      <div class="glass entry-card reveal"><span class="ico" aria-hidden="true">🎙</span><b>Voice</b><span class="pill vision">Vision</span></div>
+      <div class="glass entry-card reveal"><span class="ico" aria-hidden="true">🪟</span><b>Floating assistant</b><span class="pill vision">Vision</span></div>
+      <div class="glass entry-card reveal"><span class="ico" aria-hidden="true">🤖</span><b>ChatGPT</b><span class="pill vision">Vision</span></div>
+      <div class="glass entry-card reveal"><span class="ico" aria-hidden="true">⚡</span><b>Shortcuts</b><span class="pill vision">Vision</span></div>
+      <div class="glass entry-card reveal"><span class="ico" aria-hidden="true">🔘</span><b>Action Button</b><span class="pill vision">Vision</span></div>
+      <div class="glass entry-card reveal"><span class="ico" aria-hidden="true">🔊</span><b>Siri</b><span class="pill vision">Vision</span></div>
+    </div>
+    <p class="entry-core">Every entry point → the same governed agent runtime → the same memory of your preferences.</p>
+  </div>
+</section>
+
+<!-- SECTION 11 — Real Engineering, Open Source -->
+<section id="engineering">
+  <div class="wrap">
+    <span class="section-kicker">Real Engineering, Open Source</span>
+    <h2>Not just another <span class="grad">AI concept.</span></h2>
+    <p class="lead">ZTako stands on a real, published engineering base: an iOS MCP device server in Objective-C built with Theos for jailbroken iPhones, a governed host agent runtime in Python, and an offline test suite that runs in CI on every change.</p>
+    <div class="eng-facts">
+      <div class="fact reveal"><div class="num">70/70</div><div class="lbl">public offline host tests passing at the latest verified CI run (2026-10-02, commit 98b965e)</div></div>
+      <div class="fact reveal"><div class="num">3</div><div class="lbl">jailbreak build schemes: rootful, rootless, RootHide</div></div>
+      <div class="fact reveal"><div class="num">20+</div><div class="lbl">device MCP tools in the published source: tap, swipe, screenshot, OCR, UI tree, app &amp; package control…</div></div>
+      <div class="fact reveal"><div class="num">100%</div><div class="lbl">of the published host suite runs offline — no device, no credentials</div></div>
+    </div>
+    <div class="stack-badges">
+      <span>iOS MCP Server</span><span>Objective-C</span><span>Theos</span><span>RootHide</span><span>ElleKit</span>
+      <span>Accessibility</span><span>Device Observation</span><span>Governed Execution</span><span>Host Tests</span><span>GitHub Actions CI</span><span>Apache-2.0</span>
+    </div>
+    <div class="grid cols-3">
+      <div class="glass reveal"><h3>🌱 Open source</h3><p class="lead" style="font-size:0.92rem">Source published under Apache-2.0 with security, dependency and contribution docs.</p></div>
+      <div class="glass reveal"><h3>🔬 Built for real iOS research</h3><p class="lead" style="font-size:0.92rem">Reference environment: iPhone 15 Pro · iOS 17.0 · RootHide + ElleKit — documented honestly, not overclaimed.</p></div>
+      <div class="glass reveal"><h3>🧪 Transparent verification</h3><p class="lead" style="font-size:0.92rem">CI runs the public test suite on every push. Historical numbers are always tied to their verification point.</p></div>
+    </div>
+    <p class="fineprint">The 70/70 figure is the public host suite result at the referenced commit — a historical baseline, not a claim about unreleased code. No downloads, stars, users, testimonials or success-rate numbers are fabricated on this site.</p>
+  </div>
+</section>
+
+<!-- SECTION 12 — Roadmap -->
+<section id="roadmap">
+  <div class="wrap">
+    <span class="section-kicker">Roadmap &amp; What's Next</span>
+    <h2>The journey toward<br>a <span class="grad">personal AI operating agent.</span></h2>
+    <p class="lead">Six stages, built in order, each earning the next. Detailed technical milestones live in the project roadmap document.</p>
+    <div class="timeline">
+      <div class="tl-item done"><b>Foundation</b><p>Governed agent runtime, security boundaries, offline test suite, CI. ✅ Published.</p></div>
+      <div class="tl-item now"><b>Device Intelligence</b><p>Deep observation of the real device: accessibility, screens, apps, files, processes. 🔄 In progress.</p></div>
+      <div class="tl-item"><b>Action &amp; Verification</b><p>Controlled execution with semantic verification and recovery — act, then confirm what really happened.</p></div>
+      <div class="tl-item"><b>Personal AI</b><p>Memory, preferences and skills that inform — but never authorize — actions.</p></div>
+      <div class="tl-item"><b>Connected Experience</b><p>iPhone × Mac collaboration, keyboard and voice entries, cross-device continuity.</p></div>
+      <div class="tl-item"><b>Agent OS</b><p>A personal AI operating layer for the iPhone you chose to keep.</p></div>
+    </div>
+    <div class="btn-row">
+      <a class="btn ghost" href="https://github.com/ZBC123067/PhoneHarness-iOS-Agent/blob/main/docs/roadmap.md" target="_blank" rel="noopener">Read the technical roadmap</a>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 13 — Final CTA -->
+<section class="final" id="cta">
+  <div class="wrap">
+    <span class="section-kicker">Join the Journey</span>
+    <h2>The future of your iPhone<br><span class="grad">is still being written.</span></h2>
+    <p class="lead" style="margin:1rem auto 0;max-width:40rem">ZTako is building a different path toward intelligent mobile computing. Explore the project. Follow the journey. Help shape what's next.</p>
+    <div class="btn-row" style="justify-content:center">
+      <a class="btn primary" href="https://github.com/ZBC123067/PhoneHarness-iOS-Agent" target="_blank" rel="noopener">Explore GitHub</a>
+      <a class="btn ghost" href="#roadmap">Read the Roadmap</a>
+      <a class="btn ghost" href="https://github.com/ZBC123067/PhoneHarness-iOS-Agent/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener">Contribute</a>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="footer-inner">
+    <div>
+      <strong>ZTako</strong> — Your iPhone. Your AI. Your Control.<br>
+      Open source under the Apache License 2.0. This site describes a research project in active development; product directions are labeled as vision, not shipped features.
+    </div>
+    <div class="footer-links">
+      <a href="https://github.com/ZBC123067/PhoneHarness-iOS-Agent" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://github.com/ZBC123067/PhoneHarness-iOS-Agent/blob/main/README.md" target="_blank" rel="noopener">README</a>
+      <a href="https://github.com/ZBC123067/PhoneHarness-iOS-Agent/blob/main/SECURITY.md" target="_blank" rel="noopener">Security</a>
+      <a href="https://github.com/ZBC123067/PhoneHarness-iOS-Agent/blob/main/docs/roadmap.md" target="_blank" rel="noopener">Roadmap</a>
+      <a href="../zh-CN/">简体中文</a>
+    </div>
+  </div>
+</footer>
+
+<script src="../assets/site.js" defer></script>
+<script>
+  // Keep the language switch on the user's current section.
+  (function () {
+    var h = window.location.hash;
+    if (!h) return;
+    document.querySelectorAll(".lang-switch a[data-lang]").forEach(function (a) {
+      a.setAttribute("href", a.getAttribute("href").split("#")[0] + h);
+    });
+  })();
+</script>
+</body>
+</html>

@@ -1,354 +1,106 @@
-# PhoneHarness
+[English](README.md) | [简体中文](README.zh-CN.md)
 
-### An AI agent for the iPhone you actually control.
+# ZTako
 
-**Jailbreak gives AI power. PhoneHarness gives that power boundaries.**
+> ### The AI future shouldn't leave your iPhone behind.
+>
+> AI 的未来，不应该让你的 iPhone 掉队。
 
-AI phones are moving beyond chat.
+**Your iPhone. Your AI. Your Control.**
 
-Apple, Samsung, nubia, Doubao and other platforms are building assistants that understand context, work across apps, and increasingly act on behalf of the user.
+[![host tests](https://github.com/ZBC123067/PhoneHarness-iOS-Agent/actions/workflows/host-tests.yml/badge.svg)](https://github.com/ZBC123067/PhoneHarness-iOS-Agent/actions/workflows/host-tests.yml)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+[![Website](https://img.shields.io/badge/website-zbc123067.github.io%2FPhoneHarness--iOS--Agent-6c8cff)](https://zbc123067.github.io/PhoneHarness-iOS-Agent/)
 
-But another group of iPhone users deliberately remains on older iOS versions for **TrollStore, jailbreak, RootHide, tweaks, customization, and deeper control of their own devices**.
+## New AI phones are arriving. What about the iPhones left behind?
 
-They may not receive the newest official AI-phone experiences.
+Apple Intelligence, Galaxy AI, Doubao Phone Assistant, nubia AI — the industry is turning smartphones into AI assistants that understand natural language, read the screen, and complete tasks.
 
-Yet a jailbroken iPhone has something an ordinary sandboxed app does not:
+But none of that automatically reaches the users who deliberately stay on **iOS 17 or older** — for jailbreak ecosystems, RootHide, TrollStore, tweaks, compatibility, or simply because they want to keep the environment they chose.
 
-> **deeper access to the operating system itself.**
+ZTako explores a third option: **not** forcing users to abandon their current environment, but exploring how a modern AI agent can work with the iPhone they already control — combining jailbreak-grade device access with modern AI models, while keeping privileged execution under explicit authorization boundaries.
 
-PhoneHarness is an open-source project exploring what becomes possible when that access is combined with a modern personal AI agent — while keeping privileged execution under explicit system control.
+> ZTako is bringing next-generation AI agent experiences to jailbreak-capable iPhones.
 
----
+🚀 **[Visit the website](https://zbc123067.github.io/PhoneHarness-iOS-Agent/)** (English / 简体中文)
 
-## A Personal AI Operating Agent
+## One instruction. Real action.
 
-PhoneHarness is building toward a **Personal AI Operating Agent** for real iOS devices.
-
-It is not intended to be another chatbot or a collection of hard-coded automation scripts.
-
-The long-term user experience should be simple:
-
-> **"Help me finish this."**
-
-Behind that request, PhoneHarness works through a governed loop:
+The long-term experience ZTako is building toward:
 
 ```text
-Observe
-→ Understand
-→ Plan
-→ Authorize
-→ Bind
-→ Act
-→ Observe
-→ Verify
-→ Recover
-→ Learn
+You describe the goal
+  ↓
+The agent understands the task
+  ↓
+Observes the current screen
+  ↓
+Identifies apps and interactive elements
+  ↓
+Plans the steps
+  ↓
+Asks for authorization where needed
+  ↓
+Taps, swipes, types, or launches
+  ↓
+Observes the screen again
+  ↓
+Verifies the real outcome
 ```
 
-The goal is an assistant that can understand what the user wants, interact with the real device, check what actually happened, recover when things go wrong, and become more useful over time.
+ZTako is not just a chatbot that answers questions — it is an exploration of an agent that actually interacts with the device. Full one-sentence autonomy is a development direction, not a shipped feature; the device-control primitives behind it exist today as the open MCP foundation.
 
----
+## What we are building
 
-## What we are building toward
+- 🤖 **Personal Jarvis vision** — voice, task context, cross-app goals, honest feedback, memory and skills (staged direction; memory informs actions but never authorizes them).
+- 🖥 **iPhone × Mac** — a controlled, token-authenticated connection today; task handoff and cross-device context as a future direction, always local-first per user.
+- 📸 **Screenshot & vision intelligence** — OCR today; Ask AI, error diagnosis, layout-aware translation and summaries in development or planned.
+- ⌨️ **AI keyboard direction** — intelligence where you type, across platforms, explored honestly per platform.
+- 🧠 **Local-first + cloud choice** — Quality First. Local Preferred. Model capability and execution permission stay separate systems.
 
-PhoneHarness is designed as one agent runtime with multiple intelligence and interaction layers.
+## Why jailbreak matters
 
-### 🧠 Personal AI
+An ordinary iOS app is sandboxed. A jailbreak research environment legitimately unlocks deeper surfaces an agent can use: system observation, the accessibility tree, real device interaction, app lifecycle control, process and service management, files and diagnostics, MCP device control, and package analysis.
 
-Knowledge, memory, preferences, verified experience, and reusable skills can help the assistant gradually understand its owner.
+More access also means more responsibility:
 
-But:
+> **AI can propose actions. You remain in control.**
 
-> **Memory can inform an action. Memory can never authorize an action.**
-
-### 🤖 Local + Cloud Intelligence
-
-The architecture is designed to support both local and cloud models instead of being permanently tied to one provider.
-
-The principle is:
-
-> **Quality First. Local Preferred.**
-
-### 👁 Visual & Screenshot Intelligence
-
-Planned capabilities include OCR, Ask AI, visual understanding, screen translation, layout-aware translation, screenshot Q&A, long screenshots, annotation, error diagnosis, and structured information extraction.
-
-### ✉️ Communication Intelligence
-
-Email and messaging workflows can eventually combine understanding, translation, summarization, information extraction, reply generation, and governed sending.
-
-### 🎙 Multiple entry points
-
-The same PhoneHarness runtime is intended to be accessible through interfaces such as:
-
-- text;
-- voice;
-- Siri;
-- Action Button;
-- Shortcuts;
-- floating assistant UI;
-- ChatGPT.
-
-Different interfaces should not become different agents.
-
-They connect to the same governed runtime.
-
-### 🧑‍🏫 Learn from the user
-
-Instead of recording fixed tap coordinates, PhoneHarness is designed to learn semantic workflows from demonstrations and verified experience.
-
-### 🔄 Recover instead of blindly retrying
-
-If PhoneHarness does not know whether an action actually happened, it should first observe reality and reconcile state.
-
-> **A privileged side effect that may already have happened must never be blindly repeated.**
-
----
-
-## Why jailbreak changes the problem
-
-A jailbroken device can expose capabilities unavailable to an ordinary sandboxed iOS application.
-
-That creates opportunities for deeper:
-
-- device observation;
-- app and process control;
-- semantic UI interaction;
-- files and diagnostics;
-- system capabilities;
-- controlled privileged helpers;
-- package and software management.
-
-But greater access also increases risk.
-
-A hallucinated chatbot answer may only be wrong.
-
-A hallucinated privileged action can change the real device.
-
-That is why PhoneHarness follows one foundational rule:
-
-> **The AI may propose an action. The AI is never the authority that permits the action.**
-
-```text
-Goal
-  ↓
-Planner
-  ↓
-Validator
-  ↓
-RiskController
-  ↓
-Governed Capability Binding
-  ↓
-Provider / Executor
-  ↓
-Fresh Observation
-  ↓
-Semantic Verifier
-  ↓
-Verified Result
-```
-
-Planning, authorization, binding, execution, observation, verification, and recovery remain separate boundaries.
-
-If authority, identity, target, evidence, or result is uncertain:
-
-**PhoneHarness fails closed.**
-
----
-
-## Starting with iOS 17.0 — not ending there
-
-The current reference platform is:
-
-**iPhone 15 Pro · iOS 17.0 · RootHide + ElleKit**
-
-This is the project's first controlled development and validation environment — **not its intended final compatibility boundary**.
-
-After the core architecture is mature, PhoneHarness plans to research broader jailbreak-capable iOS environments and different jailbreak schemes.
-
-Longer term, the same governed agent architecture may also be explored on **macOS**.
-
-> **PhoneHarness starts with the iPhone. The architecture is intended to go further.**
-
-Compatibility will be earned through platform-specific testing and device gates rather than assumed.
-
----
+Jailbreak expands what is technically accessible — it does not make every action unrestricted. ZTako keeps real authorization boundaries and fails closed when anything is uncertain. Details: [SECURITY.md](SECURITY.md) and [docs/security-model.md](docs/security-model.md).
 
 ## What exists today
 
-PhoneHarness is currently a **pre-release open-source runtime**.
+ZTako (historically developed under the codename "PhoneHarness") is a **pre-release open-source project**, verified through its public host test suite — not a finished consumer product.
 
-The public project focuses first on the foundations required before increasingly powerful AI capabilities can be exposed safely:
+- **iOS MCP device server** — Objective-C + Theos, 20+ device tools in the published source: tap, swipe, text input, screenshots, OCR, accessibility-tree reading, app management, clipboard, process/service control, package management, and helper CLIs.
+- **Governed host agent runtime** — Python 3 (standard library only): planning, capability binding, authorization, observation, semantic verification and recovery boundaries.
+- **Build support** — rootful, rootless, and RootHide (roothide) schemes; reference environment: **iPhone 15 Pro · iOS 17.0 · RootHide + ElleKit**.
+- **Offline host test suite** — the public suite passed **70/70** at the latest verified CI run (2026-10-02, commit `98b965e`). CI reruns it on every push; the Actions badge above always shows the current state. This is a historical baseline tied to its verification point, not a claim about unreleased code.
 
-```text
-Security & Authority
-→ Reliable Execution
-→ Device Capabilities
-→ Personal Intelligence
-→ Product Experience
-```
+Status labels used across the project and website:
 
-The repository currently includes:
-
-- governed agent runtime foundations;
-- capability / provider separation;
-- authorization and semantic verification boundaries;
-- MCP authentication and transport hardening;
-- execution evidence / ledger concepts;
-- RootHide, rootless, and rootful build support;
-- offline host tests;
-- GitHub Actions CI;
-- security, dependency, contribution, and licensing documentation.
-
-The current public host suite passes:
-
-```text
-70 / 70 tests
-```
-
-The full Personal AI experience described above is the direction of the project — not a claim that every capability is already complete.
-
----
-
-## Architecture
-
-```
-Goal → Planner → Validator → TaskCoordinator → RiskController
-     → Capability Binding → Provider → Executor → Observation → Verifier → Ledger
-```
-
-Each stage is a boundary, not a convenience call, and each one can refuse.
-
-### Design principles
-
-- **Planner != Authorization** — a plan is a proposal, never a grant.
-- **Capability != Provider** — naming a capability does not select an implementation.
-- **Provider != Authorization** — having a provider does not permit using it.
-- **Executor success != Semantic success** — "the call returned" is not "it happened".
-- **Memory != Authorization**, **Skills != Authorization** — knowledge never widens permission.
-- **Verification is required** before any action is treated as semantically successful.
-- **Fail closed** whenever identity, authority, evidence, target, or result is uncertain.
-
-## Security model
-
-- Every device MCP endpoint requires the `X-MCP-Token` header (constant-time compare,
-  no exempt endpoint, fail closed).
-- The host reads the token from the `PHONEHARNESS_MCP_TOKEN` environment variable;
-  tokens are never hardcoded and never logged.
-- The device generates its own token from the OS CSPRNG and stores it mode `0600`.
-- The device server binds to loopback by default; LAN exposure is opt-in.
-- Full detail: [`SECURITY.md`](SECURITY.md) and [`docs/security-model.md`](docs/security-model.md).
-
-Report vulnerabilities via **GitHub Security Advisories** — never a public issue.
-
-## Supported environment
-
-| | |
+| Label | Meaning |
 |---|---|
-| Host runtime | macOS or Linux, Python 3 (standard library only) |
-| Device | jailbroken iOS device |
-| Jailbreak schemes | rootful, rootless, roothide (RootHide) |
-| Injection runtime | MobileSubstrate / ElleKit |
-| Developed/tested against | iOS 17.0 with RootHide + ElleKit |
-| Build system | [Theos](https://theos.dev) (+ Logos) |
+| **Available Foundation** | Exists in the published source and is exercised by the public test suite / CI |
+| **In Development** | Partially implemented, actively being built |
+| **Vision** | A product direction — not implemented end-to-end yet |
 
-## Preparing to use it
+## Documentation
 
-### Host requirements
-
-- Python 3.10+ (no third-party packages required for the runtime or the test suite).
-- Network reachability to the device endpoint (loopback/USB-forward by default).
-- `PHONEHARNESS_MCP_TOKEN` set to the device's configured token.
-
-### iOS requirements
-
-- A jailbroken device with MobileSubstrate/ElleKit and PreferenceLoader.
-- For roothide builds, the roothide library must be available in the build environment.
-- An installed build of this tweak, with an auth token provisioned (the packaged
-  `postinst` generates one on install).
-
-### RootHide / ElleKit notes
-
-- Build with `THEOS_PACKAGE_SCHEME=roothide` on RootHide, `rootless` on rootless jailbreaks.
-- Path translation is handled by the roothide library and is only linked for roothide builds.
-
-## Testing
-
-```bash
-python3 run_all_tests.py
-```
-
-**70/70 public host unit tests pass.** They are offline and require no device.
-
-CI runs them on **macOS**, the project's host platform: a few of the host unit
-tests compile a small Objective-C harness with the Apple toolchain
-(`xcrun`/`clang`), so the complete suite is executed on macOS runners. On Linux
-the Python-only tests run, but those harness tests cannot.
-
-18 further internal regression tests are **not** included: they depend on private
-device diagnostic/evidence artifacts that are not published. They are deliberately
-not exported just to increase the count — see the roadmap item to re-derive them
-against synthetic public fixtures [`docs/roadmap.md`](docs/roadmap.md).
-
-CI runs the same public suite on every push and pull request
-(`.github/workflows/host-tests.yml`). CI needs no device, no jailbreak, and no
-credentials.
-
-## External dependencies
-
-This source tree vendors **no** third-party code. The build-time and runtime
-dependencies (Theos, MobileSubstrate/ElleKit, PreferenceLoader, roothide, ldid,
-AppSync, OpenSSL, libplist, libzip) are documented in
-[`DEPENDENCIES.md`](DEPENDENCIES.md) and [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
-
-The optional helper tools (`mcp-root`, `mcp-roothelper`, `mcp-logreader`,
-`mcp-ldid`) build from their own Makefiles and depend on external sources that are
-not vendored. Their Makefiles **fail fast with setup instructions** if those
-sources are missing; they never download or vendor anything for you.
-
-## Current limitations
-
-- The optional helper tools require external third-party sources you must supply.
-- The 18 device-evidence-bound regression tests are not public (see Testing).
-- Host–device transport defaults to loopback/USB-forward; remote exposure is opt-in.
-- Some subsystems are young and evolving (see roadmap).
-
-## Experimental
-
-The dynamic planner, capability-provider routing, recovery/state plane, and the
-personal knowledge / memory layer are active research surfaces. Interfaces in these
-areas may change between minor versions. The architectural invariants above do not.
-
-## Roadmap
-
-See [`docs/roadmap.md`](docs/roadmap.md). Highlights: state & recovery plane,
-localized app resolution, provider router, personal knowledge & memory, and public
-synthetic regression fixtures.
+- [Project website](https://zbc123067.github.io/PhoneHarness-iOS-Agent/) — the product story, in English and 简体中文
+- [docs/PROJECT-TECHNICAL.md](docs/PROJECT-TECHNICAL.md) — the previous full technical README (architecture, setup, testing, licensing)
+- [docs/architecture.md](docs/architecture.md) · [docs/security-model.md](docs/security-model.md) · [docs/getting-started.md](docs/getting-started.md)
+- [docs/roadmap.md](docs/roadmap.md) — Foundation → Device Intelligence → Action & Verification → Personal AI → Connected Experience → Agent OS
+- [SECURITY.md](SECURITY.md) · [DEPENDENCIES.md](DEPENDENCIES.md) · [CONTRIBUTING.md](CONTRIBUTING.md)
 
 ## Contributing
 
-Issues and pull requests are welcome — see [`CONTRIBUTING.md`](CONTRIBUTING.md).
-By contributing you agree your contributions are licensed under Apache-2.0.
+Issues and pull requests are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). Vulnerabilities go through GitHub Security Advisories, never public issues.
 
 ## Licensing
 
-Project-owned source is licensed under the **Apache License 2.0** (see [`LICENSE`](LICENSE)).
+Project-owned source is licensed under the **Apache License 2.0** ([LICENSE](LICENSE)). Third-party components (ldid, AppSync Unified, libplist, OpenSSL, libzip) keep their own licenses and are intentionally not vendored — see [DEPENDENCIES.md](DEPENDENCIES.md).
 
-This covers PhoneHarness-owned code **only**. It does **not** extend to external
-third-party components, which are not vendored here and keep their own licenses:
+---
 
-- `ldid` — AGPL-3.0-only
-- `AppSync Unified` / `appinst` — GPL-3.0-or-later
-- `libplist` — LGPL-2.1-or-later
-- OpenSSL — Apache-2.0
-- `libzip` — BSD-3-Clause
-
-> Source-code licensing under Apache-2.0 does **not** imply that a future binary
-> distribution combining external copyleft dependencies can be redistributed under
-> Apache-2.0 alone. Any future `.deb` / binary release requires a separate dependency
-> and license review.
-
-## Status
-
-Pre-release staging (`v0.1.0`): source-only public release.
+*ZTako is an independent open-source research project. Apple, Samsung, ByteDance, nubia and their product names are trademarks of their respective owners, mentioned here only as public industry background; no affiliation or endorsement is implied.*
